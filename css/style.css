@@ -88,6 +88,14 @@ body:not(.is-project) .project, body.turning .project { opacity: 0; }
 .corner--bl { bottom: max(16px, env(safe-area-inset-bottom, 0px)); left: var(--edge); }
 .corner--br { bottom: max(16px, env(safe-area-inset-bottom, 0px)); right: max(18px, env(safe-area-inset-right, 0px)); }
 button.corner:hover { color: var(--fg); }
+/* On Space Cowboy the bottom of the screen is snow: the links sit on small black tabs cut from the sky. */
+body:not(.in-net) .corner--bl, body:not(.in-net) .corner--br {
+  background: #000; color: var(--fg); font-size: 13px; font-weight: 400;
+  padding: 8px 14px; bottom: max(14px, env(safe-area-inset-bottom, 0px));
+}
+body:not(.in-net) .corner--bl { left: calc(var(--edge) - 4px); }
+body:not(.in-net) .corner--br { right: max(14px, env(safe-area-inset-right, 0px)); }
+body:not(.in-net) button.corner:hover { color: var(--gold); }
 
 /* Sheets */
 .sheet {
