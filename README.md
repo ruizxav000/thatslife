@@ -1,18 +1,23 @@
 # thatslife
 
-Portfolio v2.
+Portfolio v2 for Xavier Ruiz.
 
-The site is a single living network. The name grows inside its own letterforms, then reaches toward the visitor's cursor. Projects wait in the dark; when a thread reaches one, light travels back along that exact path to the name. Returning visitors' networks regrow toward the projects they already found.
+Everything on screen is drawn in characters, live:
 
-Open `index.html` in a browser. No build step.
+- The background is the ray-traced black hole from Twin Paradox, rendered at one ray per character.
+- The name is grown by a branching, fusing network; each thread becomes `- | / \` by the direction it runs.
+- Around the cursor the characters get finer and the view is magnified.
+- Clicking a project doesn't open a page: every character scrambles and resolves into the project. Twin Paradox flies the camera in close; image projects draw their image in characters.
+
+Open `index.html` in a browser (WebGL required for the ASCII view; without it the network is shown as drawn).
 
 ## Make it yours
 
-Everything personal is in the `ME` object at the top of `js/main.js`: name, job title, city, time zone, email, links, and projects. `LAYOUT` sets where each project sits on the screen.
+Everything personal is in `ME` at the top of `js/main.js`. A project with `field: 'image'` currently uses `assets/ride.jpg`.
 
 ## Files
 
-- `js/organism.js`: growth, fusion, pathfinding back to the name, light pulses, rendering
-- `js/main.js`: content, interaction, index/contact/project sheets, memory
-- `js/colormaps.js`: colour ramps
-- `css/style.css`
+- `js/ascii.js`: black hole ray tracer and the character renderer (WebGL)
+- `js/organism.js`: the growing network
+- `js/main.js`: content, views, transitions, interaction
+- `js/palettes.js`, `js/colormaps.js`: colour

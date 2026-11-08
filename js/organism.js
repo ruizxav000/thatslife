@@ -63,7 +63,7 @@
 
   P.resize = function () {
     const r = this.base.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(this.opts.maxDpr || 2, window.devicePixelRatio || 1);
     this.w = Math.max(1, Math.round(r.width));
     this.h = Math.max(1, Math.round(r.height));
     [this.base, this.over].forEach(function (c) {
@@ -99,8 +99,8 @@
     this.bw = Math.ceil(this.w / BUCK) + 1;
     this.bh = Math.ceil(this.h / BUCK) + 1;
     this.buckets = new Array(this.bw * this.bh);
-    this.b.fillStyle = this.pal.bg;
-    this.b.fillRect(0, 0, this.w, this.h);
+    if (this.pal.bg === 'transparent') this.b.clearRect(0, 0, this.w, this.h);
+    else { this.b.fillStyle = this.pal.bg; this.b.fillRect(0, 0, this.w, this.h); }
     this.buildMask();
     this.placeSpores();
     this.seedName();
@@ -464,7 +464,7 @@
       }
       b.save();
       b.globalCompositeOperation = this.pal.dark ? 'lighter' : 'source-over';
-      b.lineWidth = 0.9;
+      b.lineWidth = this.pal.lineWidth || 0.9;
       b.strokeStyle = this.pal.name;
       b.stroke(pn);
       b.strokeStyle = this.pal.free;
@@ -475,7 +475,7 @@
     if (this.nameDone && this.nameFill < 1) {
       this.nameFill += 1 / 60;
       b.save();
-      b.globalAlpha = 0.0009;
+      b.globalAlpha = this.pal.bodyAlpha || 0.0009;
       b.drawImage(this.maskCanvas, 0, 0, W, H);
       b.restore();
     }

@@ -7,6 +7,14 @@
   'use strict';
 
   window.PALETTES = {
+    // Snow, sky and a warm rider, from the photograph; drawn as characters.
+    ascii: {
+      dark: true, bg: 'transparent', lineWidth: 1.4, bodyAlpha: 0.007,
+      name: 'rgba(244,247,252,0.95)', free: 'rgba(214,226,240,0.75)', body: 'rgb(244,247,252)', glow: 0,
+      live: ['#2b5d8a', '#3f8fd0', '#6fc0ff', '#cfeaff', '#ffffff'],
+      head: [255, 255, 255], trail: [111, 192, 255], spore: [111, 192, 255],
+      css: { fg: '#eef2f7', dim: '#8b95a5', accent: '#6fc0ff' }
+    },
     fluor: {
       dark: true, bg: '#040208',
       name: 'rgba(156,78,255,0.9)', free: 'rgba(120,60,240,0.7)', body: 'rgb(118,52,236)', glow: 0.55,

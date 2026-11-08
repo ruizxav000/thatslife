@@ -5,24 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Xavier Ruiz</title>
   <meta name="description" content="Xavier Ruiz, Product Marketing @ ServiceNow. Boston, MA.">
-  <meta name="theme-color" content="#e8e9e5">
+  <meta name="theme-color" content="#000000">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&family=Martian+Mono:wght@400..500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <canvas id="ascii" aria-hidden="true"></canvas>
   <canvas id="base" aria-hidden="true"></canvas>
   <canvas id="over" aria-hidden="true"></canvas>
 
   <h1 class="sr-only"><span data-name></span>, <span data-role></span></h1>
-  <p class="role" id="role" aria-hidden="true" data-role></p>
+  <p class="role home-only" id="role" aria-hidden="true" data-role></p>
 
-  <div class="spores" id="spores"></div>
+  <div class="spores home-only" id="spores"></div>
 
   <p class="corner corner--tl" data-place></p>
   <button class="corner corner--bl" id="open-index" type="button">Work</button>
   <button class="corner corner--br" id="open-contact" type="button">Contact</button>
+
+  <article class="project" id="project" aria-labelledby="p-title" hidden>
+    <button class="project__back" id="p-back" type="button">Back</button>
+    <div class="project__text" id="p-text">
+      <p class="project__meta" id="p-meta"></p>
+      <h2 id="p-title"></h2>
+      <p class="project__summary" id="p-summary"></p>
+      <div class="project__actions">
+        <a class="project__link" id="p-link" href="#" target="_blank" rel="noopener">Open</a>
+        <button class="project__next" id="p-next" type="button">Next</button>
+      </div>
+    </div>
+  </article>
 
   <section class="sheet" id="sheet-index" aria-label="Work" hidden>
     <button class="close" type="button" data-close>Close</button>
@@ -36,28 +50,12 @@
     </div>
   </section>
 
-  <section class="sheet sheet--project" id="sheet-project" aria-labelledby="p-title" hidden>
-    <button class="close" type="button" data-close>Close</button>
-    <article class="project">
-      <header class="project__head">
-        <h2 id="p-title"></h2>
-        <p class="project__meta" id="p-meta"></p>
-      </header>
-      <p class="project__summary" id="p-summary"></p>
-      <div class="project__media">
-        <div class="frame frame--wide"></div>
-        <div class="frame"></div>
-        <div class="frame"></div>
-      </div>
-      <button class="next" type="button" id="p-next">Next</button>
-    </article>
-  </section>
-
   <noscript><p class="noscript">Xavier Ruiz — Product Marketing @ ServiceNow</p></noscript>
 
   <script src="js/colormaps.js"></script>
   <script src="js/palettes.js"></script>
   <script src="js/organism.js"></script>
+  <script src="js/ascii.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
