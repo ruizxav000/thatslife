@@ -7,7 +7,7 @@ Portfolio v2 for Xavier Ruiz.
 **Project pages.** Clicking a found project turns the whole page into that project's own world. The front page breaks apart cell by cell into characters and becomes:
 
 - the photograph of a rider crossing snow, redrawn in characters: ink on paper below the ridge, with edges (ridgelines, the horse, the tracks) drawn as `- | / \`;
-- a ray-traced black hole in a black sky, rising behind the ridge where the moon was;
+- a sky that is a ray-traced black hole, seen from close by: its shadow and lensed disk fill everything above the ridge;
 - a lens around the cursor (finer characters, magnification) and the land drifting against the sky as the cursor moves.
 
 Back turns the page into the front page again.

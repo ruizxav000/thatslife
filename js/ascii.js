@@ -1,6 +1,6 @@
 /*
  * The art page: the photograph of a rider crossing snow, redrawn in characters,
- * with a black hole hanging where the moon was.
+ * under a sky that is a black hole.
  *
  * Pass 1 ray traces a Schwarzschild black hole at one ray per character:
  * photons are integrated backwards along null geodesics,
@@ -10,7 +10,8 @@
  * Pass 2 draws every cell. Below the ridge, a cell takes the photograph's colour
  * as a dim ground and a glyph for its brightness; where the photograph has an
  * edge (a ridgeline, the horse, a track) the glyph follows the edge: - | / \.
- * Above the ridge, the sky is black and holds the black hole and stars.
+ * Above the ridge, the sky is the black hole: its shadow and the lensed disk
+ * fill it, seen from close by.
  * Around the cursor the cells halve and the view is magnified, and the
  * landscape shifts slightly against the sky as the cursor moves.
  *
@@ -27,7 +28,7 @@
   const D0 = RAMP.length;
 
   // Where things are in the photograph (fractions of its width and height).
-  const SCENE = { rider: 0.55, moon: [0.52, 0.285], moonTall: [0.52, 0.2] };
+  const SCENE = { rider: 0.55, moon: [0.5, 0.31], moonTall: [0.5, 0.27] };
 
   const VERT = 'attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}';
 
@@ -125,14 +126,14 @@ void main(){
     vec2 pu=(sc-uPhotoRect.xy)/uPhotoRect.zw;
     float sky=pu.y<0.?1.:texture2D(uSky,vec2(mirror(pu.x),clamp(pu.y,0.,1.))).r;
     if(sky>0.5){
-      // The sky: black, the black hole where the moon was, and stars.
+      // The sky is the black hole, seen from close by.
       vec2 bu=(sc-uMoon)/uRes+0.5;
       vec3 c=vec3(0.);
       if(all(greaterThan(bu,vec2(0.)))&&all(lessThan(bu,vec2(1.))))
         c=pow(aces(texture2D(uBH,vec2(bu.x,1.-bu.y)).rgb*uExposure),vec3(1./2.2));
       idx=ramp(lum(c)*1.25);fg=c;
       float st=h12(floor(sc/uCell)*1.7+3.1);
-      if(st>0.993&&lum(c)<0.04){
+      if(st>0.997&&lum(c)<0.03){
         fg=vec3(0.72,0.8,1.)*(0.45+0.55*fract(st*97.))*(0.7+0.3*sin(uTime*1.7+st*60.));
         idx=st>0.9985?uStar.z:(st>0.997?uStar.y:uStar.x);}
     }else{
@@ -153,7 +154,7 @@ void main(){
       bg=mix(vec3(0.95,0.96,0.978),c,clamp(0.25+ink*0.6+sat*1.2,0.,0.9));
     }
   }
-  fg*=mix(1.,0.3,calm);bg*=mix(1.,0.12,calm);
+  fg*=mix(1.,0.5,calm);bg*=mix(1.,0.12,calm);
   float m=texture2D(uAtlas,vec2((idx+local.x)/uGlyphs,local.y)).a;
   gl_FragColor=vec4(mix(bg,fg,m),1.);
 }`;
@@ -180,7 +181,7 @@ void main(){
     this.mouse = [0, 0, 0];
     this.drift = [0, 0];
     this.t = 0;
-    this.cam = { dist: 55, incl: 8, phi: -0.5, lean: 0 };
+    this.cam = { dist: 15, incl: 4, phi: -0.5, lean: 0 };
     this.look = [0, 0];
     this.calm = [0, 0, 0, 0];
   }
@@ -327,7 +328,8 @@ void main(){
     // The land drifts against the sky with the cursor; the black hole drifts less.
     const L = this.layout(), dx = this.drift[0], dy = this.drift[1];
     const lx = L.x - dx * this.w * 0.014, ly = L.y - dy * this.h * 0.01;
-    const mx = L.x + L.w * L.moon[0] - dx * this.w * 0.005;
+    // The black hole is the sky: centred across the screen, sitting on the ridge.
+    const mx = this.w * 0.5 - dx * this.w * 0.005;
     const my = L.y + L.h * L.moon[1] - dy * this.h * 0.004;
 
     gl.uniform2f(p.u.uRes, this.canvas.width, this.canvas.height);
@@ -341,7 +343,7 @@ void main(){
     gl.uniform1f(p.u.uNoise0, RAMP.length + DIRS.length);
     gl.uniform1f(p.u.uTime, time);
     gl.uniform1f(p.u.uT, this.t);
-    gl.uniform1f(p.u.uExposure, 2.6);
+    gl.uniform1f(p.u.uExposure, 1.6);
     gl.uniform3f(p.u.uMouse, this.mouse[0] * d, this.mouse[1] * d, this.mouse[2]);
     gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 140) * d);
     gl.uniform4fv(p.u.uCalm, this.calm);
