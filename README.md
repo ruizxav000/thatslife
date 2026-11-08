@@ -7,6 +7,7 @@ Portfolio v2 for Xavier Ruiz.
 **Project pages.** Clicking a found project turns the whole page into that project's own world. The front page breaks apart cell by cell into characters and becomes:
 
 - the photograph of a rider crossing snow, redrawn in characters: ink on paper below the ridge, with edges (ridgelines, the horse, the tracks) drawn as `- | / \`;
+- the rider at a gallop: he pitches and bounces in stride, kicks up snow, leaves hoofprints that fill back in, rides across and comes back around, and wheels to chase the cursor across the snow;
 - a sky that is a ray-traced black hole, seen from close by: its shadow and lensed disk fill everything above the ridge;
 - a lens around the cursor (finer characters, magnification) and the land drifting against the sky as the cursor moves.
 
@@ -24,4 +25,4 @@ Everything personal is in `ME` at the top of `js/main.js`.
 - `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
 - `js/main.js`: content, the two views and the transition between them
 - `js/palettes.js`, `js/colormaps.js`: colour
-- `assets/scene.jpg`: the photograph; `assets/scene-clean.jpg`: the same without the rider, for the mirrored edges of wide screens; `assets/sky.png`: where the sky is
+- `assets/scene.jpg`: the photograph with the rider lifted out; `assets/rider.png`: the rider; `assets/sky.png`: where the sky is

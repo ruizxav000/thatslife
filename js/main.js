@@ -99,7 +99,7 @@
   }
 
   // ====================================================================================
-  // Project pages: the photograph redrawn in characters, a black hole where the moon was.
+  // Project pages: Space Cowboy. The photograph redrawn in characters, under a black hole.
   // ====================================================================================
 
   let ascii = null;
@@ -111,14 +111,117 @@
 
   const SCENE_SRC = 'assets/scene.jpg';
   const SKY_SRC = 'assets/sky.png';
-  const CLEAN_SRC = 'assets/scene-clean.jpg';
-  const scene = new Image(), skyMask = new Image(), clean = new Image();
-  clean.onload = function () { if (ascii) ascii.setClean(clean); };
-  clean.src = CLEAN_SRC;
+  const RIDER_SRC = 'assets/rider.png';
+  const scene = new Image(), skyMask = new Image(), riderImg = new Image();
   scene.onload = function () { if (ascii) ascii.setPhoto(scene); };
   skyMask.onload = function () { if (ascii) ascii.setSky(skyMask); };
+  riderImg.onload = function () { if (ascii) ascii.setRider(riderImg); };
   scene.src = SCENE_SRC;
   skyMask.src = SKY_SRC;
+  riderImg.src = RIDER_SRC;
+
+  // ---- The rider at a gallop ---------------------------------------------------------
+  // Everything here is in photo space: u across the photograph (0..1, beyond it mirrored),
+  // v down it. Where he stands in the photograph, and where his hooves are on the sprite:
+  const SPRITE = { u: 0.455, v: 0.503, w: 0.285, h: 0.1886, pivot: [0.57, 0.92], front: [0.12, 0.96], hind: [0.57, 0.92] };
+  const GROUND = SPRITE.v + SPRITE.h;
+  const START = SPRITE.u + SPRITE.w / 2;
+  const CRUISE = 0.0042;               // photo widths per frame at a steady gallop
+
+  // Tracks persist and slowly fill in; kicked-up snow is redrawn every frame.
+  const FX_W = 750, FX_H = 338;
+  const fx = document.createElement('canvas'), tracks = document.createElement('canvas');
+  fx.width = tracks.width = FX_W; fx.height = tracks.height = FX_H;
+  const fxc = fx.getContext('2d'), trc = tracks.getContext('2d');
+  const toFx = function (u, v) { return [(u + 1) / 3 * FX_W, v * FX_H]; };
+
+  const rider = { u: START, vel: 0, dir: -1, phase: 0, wait: 0, stride: 0, spray: [] };
+
+  function riderReset() {
+    rider.u = START; rider.vel = 0; rider.dir = -1; rider.phase = 0; rider.wait = 0;
+    rider.stride = 0; rider.spray = [];
+    trc.clearRect(0, 0, FX_W, FX_H);
+  }
+
+  function hoof(rect, at, flip) {
+    return [rect[0] + (flip ? 1 - at[0] : at[0]) * rect[2], rect[1] + at[1] * rect[3]];
+  }
+
+  function riderStep(moving) {
+    const L = ascii.layout(), W = window.innerWidth;
+    const uL = -L.x / L.w, uR = (W - L.x) / L.w, half = SPRITE.w / 2;
+    if (moving) {
+      const ridgeY = L.y + L.h * 0.4;
+      const chasing = pointer.on && performance.now() - pointer.moved < 2500 && pointer.y > ridgeY;
+      let want;
+      if (chasing) {
+        const target = (pointer.x - L.x) / L.w;
+        want = Math.max(-CRUISE * 1.6, Math.min(CRUISE * 1.6, (target - rider.u) * 0.03));
+        if (Math.abs(target - rider.u) < 0.02) want = 0;
+      } else {
+        want = rider.dir * CRUISE;
+        // Off one side of the screen: a pause, then he comes back in from the other.
+        if ((rider.dir < 0 && rider.u < uL - half) || (rider.dir > 0 && rider.u > uR + half)) {
+          if (++rider.wait > 70) { rider.u = rider.dir < 0 ? uR + half : uL - half; rider.wait = 0; }
+          want = 0;
+        }
+      }
+      rider.vel += (want - rider.vel) * 0.05;
+      rider.u += rider.vel;
+      if (Math.abs(rider.vel) > CRUISE * 0.1) rider.dir = rider.vel < 0 ? -1 : 1;
+      rider.phase += Math.abs(rider.vel) * 52;
+    }
+    const pace = Math.min(1, Math.abs(rider.vel) / CRUISE);
+    const flip = rider.dir > 0 ? 1 : 0;
+    const bob = Math.abs(Math.sin(rider.phase)) * 0.012 * pace;
+    const rect = [rider.u - half, GROUND - SPRITE.h - bob, SPRITE.w, SPRITE.h];
+    const r = ascii.rider;
+    r.rect = rect;
+    r.pivot = [flip ? 1 - SPRITE.pivot[0] : SPRITE.pivot[0], SPRITE.pivot[1]];
+    r.rot = Math.sin(rider.phase) * 0.075 * pace * (flip ? -1 : 1);
+    r.flip = flip;
+    r.shadow = [rider.u - 0.1, GROUND + 0.004, SPRITE.w * 0.55, 0.011 + 0.003 * pace];
+
+    if (!moving) return;
+    // Hoofprints: each time a stride lands, both pairs of hooves press into the snow.
+    trc.globalCompositeOperation = 'destination-out';
+    trc.fillStyle = 'rgba(0,0,0,0.0035)';
+    trc.fillRect(0, 0, FX_W, FX_H);
+    trc.globalCompositeOperation = 'source-over';
+    const fh = hoof(rect, SPRITE.front, flip), hh = hoof(rect, SPRITE.hind, flip);
+    const stride = Math.floor(rider.phase / Math.PI);
+    if (pace > 0.2 && stride !== rider.stride) {
+      trc.fillStyle = 'rgba(255,0,0,0.95)';
+      [[fh[0], GROUND - 0.005], [hh[0], GROUND + 0.004]].forEach(function (h) {
+        const at = toFx(h[0] + (Math.random() - 0.5) * 0.004, h[1]);
+        trc.beginPath();
+        trc.ellipse(at[0], at[1], 1.6, 0.9, 0, 0, Math.PI * 2);
+        trc.fill();
+      });
+    }
+    rider.stride = stride;
+
+    // Snow kicked up behind him on every stride.
+    if (pace > 0.3) {
+      const n = 2 + (Math.random() * 2 | 0);
+      for (let i = 0; i < n; i++) {
+        const at = toFx(hh[0], GROUND);
+        rider.spray.push({ x: at[0], y: at[1], vx: -rider.dir * (0.4 + Math.random() * 1.6) * pace, vy: -(0.6 + Math.random() * 1.6) * pace, life: 30 + Math.random() * 24 });
+      }
+    }
+    fxc.clearRect(0, 0, FX_W, FX_H);
+    fxc.globalCompositeOperation = 'lighter';
+    fxc.drawImage(tracks, 0, 0);
+    for (let i = rider.spray.length - 1; i >= 0; i--) {
+      const s = rider.spray[i];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.07; s.life--;
+      if (s.life <= 0 || s.y > toFx(0, GROUND + 0.01)[1]) { rider.spray.splice(i, 1); continue; }
+      fxc.fillStyle = 'rgba(0,255,0,' + Math.min(1, s.life / 25).toFixed(2) + ')';
+      fxc.fillRect(s.x - 0.8, s.y - 0.8, 1.6, 1.6);
+    }
+    fxc.globalCompositeOperation = 'source-over';
+    ascii.setFx(fx);
+  }
 
   // ---- Moving between the front page and a project ----------------------------------
 
@@ -202,6 +305,7 @@
     body.classList.add('is-project');
     if (!ascii || already) { fill(i, already ? 0 : 0); requestAnimationFrame(placeCalm); return; }
     snapshotHome();
+    riderReset();
     ascii.t = 0;
     body.classList.add('in-world');
     fill(i, 700);
@@ -300,6 +404,7 @@
       org.render();
     }
     if (inWorld && ascii && !document.hidden) {
+      riderStep(!reduceMotion && !openSheet && view.t > 0.3);
       lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
       const W = window.innerWidth, H = window.innerHeight;
       pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
