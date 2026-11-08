@@ -121,8 +121,8 @@ button.corner:hover { color: var(--fg); }
 /* The project page */
 .project {
   position: fixed; inset: 0; z-index: 4; pointer-events: none;
-  padding: clamp(72px, 14vh, 140px) var(--edge) 80px;
-  display: grid; align-content: center;
+  padding: max(64px, 8vh) var(--edge) 80px;
+  display: grid; align-content: start;
 }
 .project[hidden] { display: none; }
 .project { transition: opacity 0.35s ease; }
@@ -132,19 +132,18 @@ body:not(.is-project) .project { opacity: 0; }
   font-size: 12px; letter-spacing: 0.02em; color: var(--dim); padding: 6px 0; pointer-events: auto;
 }
 .project__back:hover { color: var(--fg); }
-.project__text { width: min(40vw, 520px); display: grid; gap: 22px; pointer-events: auto; }
+.project__text { width: min(34vw, 460px); display: grid; gap: 14px; pointer-events: auto; }
 .project h2 {
-  font-family: var(--display); font-size: clamp(36px, 4.8vw, 76px); font-weight: 700;
+  font-family: var(--display); font-size: clamp(28px, 3.4vw, 52px); font-weight: 700;
   letter-spacing: -0.035em; line-height: 0.95; text-wrap: balance;
 }
 .project__meta { font: 400 12px/1.4 var(--mono); color: var(--gold); letter-spacing: 0.02em; }
-.project__summary { font-size: clamp(15px, 1.25vw, 18px); line-height: 1.6; color: var(--fg); max-width: 38ch; }
+.project__summary { font-size: clamp(13px, 1vw, 15px); line-height: 1.55; color: var(--fg); max-width: 44ch; }
 .project__actions { display: flex; gap: 28px; font-size: 13px; }
 .project__link, .project__next { color: var(--dim); text-decoration: none; padding: 6px 0; }
 .project__link:hover, .project__next:hover { color: var(--gold); }
 .project__link[hidden] { display: none; }
 @media (max-width: 700px), (orientation: portrait) {
-  .project { align-content: start; padding-top: max(72px, env(safe-area-inset-top, 0px)); }
   .project__text { width: 100%; }
 }
 

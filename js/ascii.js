@@ -1,25 +1,33 @@
 /*
- * ASCII renderer.
+ * The art page: the photograph of a rider crossing snow, redrawn in characters,
+ * with a black hole hanging where the moon was.
  *
- * Pass 1 ray traces a Schwarzschild black hole (from Twin Paradox) at low
- * resolution: photons are integrated backwards along null geodesics,
+ * Pass 1 ray traces a Schwarzschild black hole at one ray per character:
+ * photons are integrated backwards along null geodesics,
  *     x'' = -1.5 h² x / |x|⁵,  h = |x × x'|,
- * crossing a thin Keplerian accretion disk shaded with Doppler beaming,
- * gravitational redshift and blackbody colour.
+ * crossing a thin Keplerian disk with Doppler beaming and blackbody colour.
  *
- * Pass 2 turns the whole screen into characters. Each cell looks at the
- * black hole, the grown network and the current project, picks a glyph by
- * brightness (or, for threads, by the direction the thread runs), and draws
- * it from a glyph atlas. Around the cursor the cells halve in size and the
- * content is magnified. Switching views scrambles every cell in turn.
+ * Pass 2 draws every cell. Below the ridge, a cell takes the photograph's colour
+ * as a dim ground and a glyph for its brightness; where the photograph has an
+ * edge (a ridgeline, the horse, a track) the glyph follows the edge: - | / \.
+ * Above the ridge, the sky is black and holds the black hole and stars.
+ * Around the cursor the cells halve and the view is magnified, and the
+ * landscape shifts slightly against the sky as the cursor moves.
+ *
+ * A transition starts from a still of the front page and turns it cell by cell.
  */
 (function () {
   'use strict';
 
-  const RAMP = ' .,:;-=+*#%@';             // 0..11, by brightness
-  const DIRS = '|/\\';                      // 12..14 (and '-' is RAMP[5])
-  const NOISE = '01<>[]{}()?!$&~^';         // 15.. scramble glyphs
+  // 70 characters from light to dense, then edge strokes, then scramble glyphs.
+  const RAMP = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+  const DIRS = '-|/\\';
+  const NOISE = '01<>[]{}()?!$&~^';
   const ATLAS = RAMP + DIRS + NOISE;
+  const D0 = RAMP.length;
+
+  // Where things are in the photograph (fractions of its width and height).
+  const SCENE = { rider: 0.55, moon: [0.52, 0.285], moonTall: [0.52, 0.2] };
 
   const VERT = 'attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}';
 
@@ -79,25 +87,24 @@ void main(){
 }`;
 
   const ASCII = `precision highp float;
-uniform sampler2D uBH,uOrg,uHome,uAtlas,uRider;
-uniform vec4 uRiderRect;uniform float uRiderFlip;
-uniform vec2 uRes,uCell;uniform float uGlyphs,uNoise0,uTime,uT,uExposure;
-uniform vec3 uMouse;uniform float uLensR;
-uniform vec4 uCalm;uniform vec3 uAccent;
+uniform sampler2D uBH,uPhoto,uClean,uSky,uHome,uAtlas;
+uniform vec3 uStar;
+uniform vec2 uRes,uCell,uMoon;
+uniform float uGlyphs,uRampN,uD0,uNoise0,uTime,uT,uExposure,uLensR;
+uniform vec3 uMouse,uAccent;
+uniform vec4 uPhotoRect,uCalm;
 float h12(vec2 p){vec3 q=fract(vec3(p.xyx)*0.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 vec3 aces(vec3 x){return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.,1.);}
 float lum(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
-float rampIdx(float l){return floor(clamp(l,0.,1.)*11.999);}
-vec3 blackhole(vec2 uv,float dim){
-  vec3 c=aces(texture2D(uBH,vec2(uv.x,1.-uv.y)).rgb*uExposure);
-  vec2 k=smoothstep(uCalm.xy-vec2(0.06,0.08),uCalm.xy,uv)*(1.-smoothstep(uCalm.zw,uCalm.zw+vec2(0.06,0.08),uv));
-  return pow(c,vec3(1./2.2))*mix(1.,dim,k.x*k.y);}
+float ramp(float l){return floor(clamp(l,0.,1.)*(uRampN-0.001));}
+float mirror(float u){float f=mod(u,2.);return f>1.?2.-f:f;}
+// Inside the frame, the photograph; beyond it, a mirrored copy without the rider.
+vec3 photo(vec2 u){vec2 m=vec2(mirror(u.x),clamp(u.y,0.,1.));
+  return (u.x<0.||u.x>1.)?texture2D(uClean,m).rgb:texture2D(uPhoto,m).rgb;}
 void main(){
   vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
-  vec2 cell0=floor(p/uCell);
-  float seed=h12(cell0+0.37);
+  float seed=h12(floor(p/uCell)+0.37);
   float edge=uT*1.12-0.06;
-
   // Not yet turned: the front page exactly as it was.
   if(seed>edge){gl_FragColor=vec4(texture2D(uHome,p/uRes).rgb,1.);return;}
 
@@ -106,50 +113,49 @@ void main(){
   vec2 cell=lens>0.5?uCell*0.5:uCell;
   vec2 cid=floor(p/cell),local=fract(p/cell);
   vec2 ctr=(cid+0.5)*cell;
-  vec2 sc=lens>0.5?uMouse.xy+(ctr-uMouse.xy)*mix(0.62,1.,pow(d/uLensR,2.)):ctr;
+  vec2 sc=lens>0.5?uMouse.xy+(ctr-uMouse.xy)*mix(0.6,1.,pow(d/uLensR,2.)):ctr;
   vec2 uv=sc/uRes;
+  vec2 ck=smoothstep(uCalm.xy-vec2(0.05,0.07),uCalm.xy,uv)*(1.-smoothstep(uCalm.zw,uCalm.zw+vec2(0.05,0.07),uv));
+  float calm=ck.x*ck.y;
 
-  float idx;vec3 col;
+  float idx;vec3 fg,bg=vec3(0.);
   if(seed>edge-0.06){
-    // Turning: scrambling characters.
-    idx=uNoise0+floor(h12(cid+floor(uTime*20.))*(uGlyphs-uNoise0));col=uAccent;
+    idx=uNoise0+floor(h12(cid+floor(uTime*20.))*(uGlyphs-uNoise0));fg=uAccent;
   }else{
-    // The project world: the black hole in characters.
-    col=blackhole(uv,0.3);idx=rampIdx(lum(col)*1.15);
-
-    // Tracks in the snow, drawn by the direction they run.
-    vec2 tap=cell/uRes/3.;
-    float cov=0.,sxx=0.,syy=0.,sxy=0.;vec3 oc=vec3(0.);
-    for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
-      vec4 s=texture2D(uOrg,uv+vec2(float(i),float(j))*tap);
-      cov+=s.a;oc+=s.rgb*s.a;
-      float x=float(i),y=float(j);sxx+=s.a*x*x;syy+=s.a*y*y;sxy+=s.a*x*y;}
-    cov/=9.;
-    if(cov>0.05){
-      oc/=max(cov*9.,1e-3);
-      float an=degrees(0.5*atan(2.*sxy,sxx-syy));
-      float aniso=length(vec2(sxx-syy,2.*sxy))/max(sxx+syy,1e-3);
-      idx=aniso>0.45&&cov<0.6?(abs(an)<22.5?5.:(abs(an)>67.5?12.:(an<0.?13.:14.))):rampIdx(0.35+cov*0.9);
-      col=oc*mix(0.75,1.25,clamp(cov*2.,0.,1.));
-    }
-
-    // The rider.
-    vec2 ru=(uv-uRiderRect.xy)/(uRiderRect.zw-uRiderRect.xy);
-    if(all(greaterThanEqual(ru,vec2(0.)))&&all(lessThanEqual(ru,vec2(1.)))){
-      if(uRiderFlip>0.5)ru.x=1.-ru.x;
-      vec4 rs=texture2D(uRider,ru);
-      if(rs.a>0.45){
-        vec2 rd=(uCell*1.2/uRes)/(uRiderRect.zw-uRiderRect.xy);
-        float l0=lum(rs.rgb);
-        float lb=0.25*(lum(texture2D(uRider,ru+vec2(rd.x,0.)).rgb)+lum(texture2D(uRider,ru-vec2(rd.x,0.)).rgb)
-                      +lum(texture2D(uRider,ru+vec2(0.,rd.y)).rgb)+lum(texture2D(uRider,ru-vec2(0.,rd.y)).rgb));
-        idx=rampIdx(clamp(0.16+l0*0.78+(l0-lb)*2.2,0.08,1.));
-        col=rs.rgb*1.25+0.05;
-      }
+    vec2 pu=(sc-uPhotoRect.xy)/uPhotoRect.zw;
+    float sky=pu.y<0.?1.:texture2D(uSky,vec2(mirror(pu.x),clamp(pu.y,0.,1.))).r;
+    if(sky>0.5){
+      // The sky: black, the black hole where the moon was, and stars.
+      vec2 bu=(sc-uMoon)/uRes+0.5;
+      vec3 c=vec3(0.);
+      if(all(greaterThan(bu,vec2(0.)))&&all(lessThan(bu,vec2(1.))))
+        c=pow(aces(texture2D(uBH,vec2(bu.x,1.-bu.y)).rgb*uExposure),vec3(1./2.2));
+      idx=ramp(lum(c)*1.25);fg=c;
+      float st=h12(floor(sc/uCell)*1.7+3.1);
+      if(st>0.993&&lum(c)<0.04){
+        fg=vec3(0.72,0.8,1.)*(0.45+0.55*fract(st*97.))*(0.7+0.3*sin(uTime*1.7+st*60.));
+        idx=st>0.9985?uStar.z:(st>0.997?uStar.y:uStar.x);}
+    }else{
+      // The land, from the photograph, as ink on paper: darker places get denser characters.
+      vec3 c=photo(pu);
+      vec2 du=cell/uPhotoRect.zw;
+      float gx=lum(photo(pu+vec2(du.x,0.)))-lum(photo(pu-vec2(du.x,0.)));
+      float gy=lum(photo(pu+vec2(0.,du.y)))-lum(photo(pu-vec2(0.,du.y)));
+      float l=lum(c);
+      float ink=clamp((0.82-l)/0.6,0.,1.);
+      float sat=max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));
+      fg=c*mix(0.55,0.3,ink);
+      if(length(vec2(gx,gy))>0.16){
+        float e=mod(degrees(atan(gy,gx))+90.,180.);
+        idx=uD0+(e<22.5||e>=157.5?0.:(e<67.5?3.:(e<112.5?1.:2.)));fg=c*0.3;
+      }else idx=ramp(pow(ink,0.8));
+      // Paper where the snow is; the photograph's own colour where there is something there.
+      bg=mix(vec3(0.95,0.96,0.978),c,clamp(0.25+ink*0.6+sat*1.2,0.,0.9));
     }
   }
+  fg*=mix(1.,0.3,calm);bg*=mix(1.,0.12,calm);
   float m=texture2D(uAtlas,vec2((idx+local.x)/uGlyphs,local.y)).a;
-  gl_FragColor=vec4(col*m,1.);
+  gl_FragColor=vec4(mix(bg,fg,m),1.);
 }`;
 
   function Ascii(canvas, opts) {
@@ -165,17 +171,16 @@ void main(){
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
     this.bhTex = this.texture(gl.LINEAR);
     this.fbo = gl.createFramebuffer();
-    this.orgTex = this.texture(gl.LINEAR);
+    this.photoTex = this.texture(gl.LINEAR);
+    this.cleanTex = this.texture(gl.LINEAR);
+    this.skyTex = this.texture(gl.LINEAR);
     this.homeTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
-    this.riderTex = this.texture(gl.LINEAR);
-    this.riderRect = [-1, -1, -1, -1];
-    this.riderFlip = 0;
-    this.feed = document.createElement('canvas');
-    this.fctx = this.feed.getContext('2d');
+    this.photoAR = 1000 / 1352;
     this.mouse = [0, 0, 0];
-    this.t = 0;            // 0 home → 1 project
-    this.cam = { dist: 17, incl: 6, phi: -0.5, lean: 0.05 };
+    this.drift = [0, 0];
+    this.t = 0;
+    this.cam = { dist: 55, incl: 8, phi: -0.5, lean: 0 };
     this.look = [0, 0];
     this.calm = [0, 0, 0, 0];
   }
@@ -212,9 +217,20 @@ void main(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
     return t;
   };
+
+  A.upload = function (tex, src) {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  };
+  A.setPhoto = function (img) { this.photoAR = img.naturalWidth / img.naturalHeight; this.upload(this.photoTex, img); };
+  A.setClean = function (img) { this.upload(this.cleanTex, img); };
+  A.setSky = function (img) { this.upload(this.skyTex, img); };
+  // A still of the front page, the starting point of a transition.
+  A.setHome = function (canvas) { this.upload(this.homeTex, canvas); };
 
   A.resize = function (w, h) {
     const gl = this.gl;
@@ -223,51 +239,38 @@ void main(){
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
     const small = w < 700;
-    this.cellW = small ? 6 : 7;
-    this.cellH = small ? 11 : 13;
+    this.cellW = small ? 4 : 5;
+    this.cellH = small ? 8 : 10;
     this.cols = Math.ceil(w / this.cellW);
     this.rows = Math.ceil(h / this.cellH);
-
-    // Black hole at one sample per cell; the lens interpolates between them.
     this.bw = this.cols; this.bh = this.rows;
     gl.bindTexture(gl.TEXTURE_2D, this.bhTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.bw, this.bh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bhTex, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    // The network is sampled 3×3 per cell.
-    this.feed.width = this.cols * 3;
-    this.feed.height = this.rows * 3;
     this.buildAtlas();
   };
 
   A.buildAtlas = function () {
-    const gl = this.gl;
-    const gw = Math.round(this.cellW * this.dpr), gh = Math.round(this.cellH * this.dpr);
+    const gw = Math.round(this.cellW * this.dpr * 2), gh = Math.round(this.cellH * this.dpr * 2);
     const c = document.createElement('canvas');
     c.width = gw * ATLAS.length; c.height = gh;
     const x = c.getContext('2d');
     x.fillStyle = '#fff';
     x.textAlign = 'center';
     x.textBaseline = 'middle';
-    x.font = '500 ' + Math.round(gh * 0.78) + 'px ' + this.opts.mono;
+    x.font = '500 ' + Math.round(gh * 0.8) + 'px ' + this.opts.mono;
     for (let i = 0; i < ATLAS.length; i++) x.fillText(ATLAS[i], (i + 0.5) * gw, gh * 0.54);
-    gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    this.upload(this.atlasTex, c);
   };
 
-  // A still of the front page, used as the starting point of a transition.
-  A.setHome = function (canvas) {
-    const gl = this.gl;
-    gl.bindTexture(gl.TEXTURE_2D, this.homeTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-  };
-
-  A.setRider = function (img) {
-    const gl = this.gl;
-    gl.bindTexture(gl.TEXTURE_2D, this.riderTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  // The photograph fills the height; the rider sits a little right of centre
+  // (centred on narrow screens). Beyond its edges the land is mirrored.
+  A.layout = function () {
+    const W = this.w, H = this.h, tall = W < 700 || H > W;
+    const ph = H * (tall ? 1 : 1.04), pw = ph * this.photoAR;
+    return { x: W * (tall ? 0.5 : 0.6) - pw * SCENE.rider, y: H - ph, w: pw, h: ph, moon: tall ? SCENE.moonTall : SCENE.moon };
   };
 
   A.camera = function () {
@@ -278,7 +281,6 @@ void main(){
     let fwd = n([-pos[0], -pos[1], -pos[2]]);
     let right = n(cross(fwd, [0, 1, 0]));
     let up = cross(right, fwd);
-    // The mouse turns the head a little; the view also leans so the hole sits low.
     const lx = this.look[0], ly = this.look[1] + c.lean;
     fwd = n([fwd[0] + right[0] * lx + up[0] * ly, fwd[1] + right[1] * lx + up[1] * ly, fwd[2] + right[2] * lx + up[2] * ly]);
     right = n(cross(fwd, [0, 1, 0]));
@@ -286,18 +288,8 @@ void main(){
     return { pos: pos, fwd: fwd, right: right, up: up };
   };
 
-  A.draw = function (time, org) {
-    const gl = this.gl;
-    // Feed the grown network in at 3×3 samples per cell.
-    const f = this.fctx;
-    f.clearRect(0, 0, this.feed.width, this.feed.height);
-    if (org) {
-      f.imageSmoothingEnabled = true;
-      f.imageSmoothingQuality = 'high';
-      for (let i = 0; i < org.length; i++) f.drawImage(org[i], 0, 0, this.feed.width, this.feed.height);
-    }
-    gl.bindTexture(gl.TEXTURE_2D, this.orgTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.feed);
+  A.draw = function (time) {
+    const gl = this.gl, d = this.dpr;
 
     // Pass 1: the black hole.
     const cam = this.camera();
@@ -324,30 +316,38 @@ void main(){
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.enableVertexAttribArray(p.a);
     gl.vertexAttribPointer(p.a, 2, gl.FLOAT, false, 0, 0);
-    const units = [['uBH', this.bhTex], ['uOrg', this.orgTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex], ['uRider', this.riderTex]];
+    const units = [['uBH', this.bhTex], ['uPhoto', this.photoTex], ['uClean', this.cleanTex], ['uSky', this.skyTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex]];
     units.forEach(function (u, i) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, u[1]);
       gl.uniform1i(p.u[u[0]], i);
     });
     gl.activeTexture(gl.TEXTURE0);
-    const d = this.dpr;
+
+    // The land drifts against the sky with the cursor; the black hole drifts less.
+    const L = this.layout(), dx = this.drift[0], dy = this.drift[1];
+    const lx = L.x - dx * this.w * 0.014, ly = L.y - dy * this.h * 0.01;
+    const mx = L.x + L.w * L.moon[0] - dx * this.w * 0.005;
+    const my = L.y + L.h * L.moon[1] - dy * this.h * 0.004;
+
     gl.uniform2f(p.u.uRes, this.canvas.width, this.canvas.height);
     gl.uniform2f(p.u.uCell, this.cellW * d, this.cellH * d);
+    gl.uniform2f(p.u.uMoon, mx * d, my * d);
+    gl.uniform4f(p.u.uPhotoRect, lx * d, ly * d, L.w * d, L.h * d);
     gl.uniform1f(p.u.uGlyphs, ATLAS.length);
+    gl.uniform1f(p.u.uRampN, RAMP.length);
+    gl.uniform1f(p.u.uD0, D0);
+    gl.uniform3f(p.u.uStar, RAMP.indexOf('.'), RAMP.indexOf('+'), RAMP.indexOf('*'));
     gl.uniform1f(p.u.uNoise0, RAMP.length + DIRS.length);
     gl.uniform1f(p.u.uTime, time);
     gl.uniform1f(p.u.uT, this.t);
-    gl.uniform1f(p.u.uExposure, 1.7 + 1.0 * Math.min(1, Math.max(0, (this.cam.dist - 9.5) / 7.5)));
+    gl.uniform1f(p.u.uExposure, 2.6);
     gl.uniform3f(p.u.uMouse, this.mouse[0] * d, this.mouse[1] * d, this.mouse[2]);
-    gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 130) * d);
+    gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 140) * d);
     gl.uniform4fv(p.u.uCalm, this.calm);
-    gl.uniform4fv(p.u.uRiderRect, this.riderRect);
-    gl.uniform1f(p.u.uRiderFlip, this.riderFlip);
     gl.uniform3fv(p.u.uAccent, this.opts.accent);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
 
-  Ascii.GLYPHS = ATLAS;
   window.Ascii = Ascii;
 })();

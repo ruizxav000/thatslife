@@ -9,19 +9,12 @@
       { label: 'LinkedIn', href: '#' },
       { label: 'Email', href: '#' }
     ],
-    // Each project is its own world. `view` is where the camera sits around the black hole.
     projects: [
-      { title: 'Twin Paradox', meta: 'Experience, 2026', link: 'https://claude.ai/artifact/N3rya4kPj5kA7Ky8Pkypf4',
-        summary: 'A first-person journey to a black hole, ray traced live in the browser. Hold at the edge of the horizon and seven years pass at home for every hour on board.',
-        view: { dist: 9.5, incl: 2.4, phi: 0.85, lean: -0.02 } },
-      { title: 'Project Two',   meta: 'Positioning, 2025', summary: 'One or two sentences on what this was and why it mattered.',
-        view: { dist: 17, incl: 6, phi: -0.5, lean: 0.05 } },
-      { title: 'Project Three', meta: 'Campaign, 2025',    summary: 'One or two sentences on what this was and why it mattered.',
-        view: { dist: 14, incl: 11, phi: 1.6, lean: 0.04 } },
-      { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.',
-        view: { dist: 21, incl: 3.5, phi: 2.6, lean: 0.06 } },
-      { title: 'Project Five',  meta: 'Research, 2024',    summary: 'One or two sentences on what this was and why it mattered.',
-        view: { dist: 12, incl: 15, phi: -1.4, lean: 0.02 } }
+      { title: 'Project One',   meta: 'Launch, 2026',      summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Project Two',   meta: 'Positioning, 2025', summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Project Three', meta: 'Campaign, 2025',    summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Project Five',  meta: 'Research, 2024',    summary: 'One or two sentences on what this was and why it mattered.' }
     ]
   };
 
@@ -106,7 +99,7 @@
   }
 
   // ====================================================================================
-  // Project pages: a world in characters. The black hole, and the rider from the photograph.
+  // Project pages: the photograph redrawn in characters, a black hole where the moon was.
   // ====================================================================================
 
   let ascii = null;
@@ -116,78 +109,26 @@
     ascii = null;
   }
 
-  const RIDER_SRC = 'assets/rider.png';
-  const RIDER_AR = 220 / 198;
-  const riderImg = new Image();
-  riderImg.onload = function () { if (ascii) ascii.setRider(riderImg); };
-  riderImg.src = RIDER_SRC;
-
-  // The rider gallops along the bottom toward the cursor, or wherever he likes when it's still,
-  // leaving two lines of tracks in the snow that slowly fill back in.
-  const trail = document.createElement('canvas');
-  const tctx = trail.getContext('2d');
-  const rider = { x: 0, v: 0, target: 0, phase: 0, flip: 0, hooves: null, idle: 0, bob: 0 };
-
-  function riderReset() {
-    trail.width = window.innerWidth;
-    trail.height = window.innerHeight;
-    rider.x = window.innerWidth * 0.8;
-    rider.v = 0;
-    rider.target = window.innerWidth * 0.3;
-    rider.hooves = null;
-  }
-
-  function riderStep(moving) {
-    const W = window.innerWidth, H = window.innerHeight;
-    const rh = H * (W < 700 ? 0.16 : 0.27), rw = rh * RIDER_AR;
-    const baseY = H - Math.max(72, H * 0.1);
-    if (moving) {
-      const chasing = pointer.on && performance.now() - pointer.moved < 2500;
-      if (chasing) rider.target = Math.min(W - rw * 0.5, Math.max(rw * 0.5, pointer.x));
-      else if (Math.abs(rider.target - rider.x) < 24 && ++rider.idle > 120) {
-        rider.idle = 0;
-        rider.target = W * (0.12 + Math.random() * 0.76);
-      }
-      const want = Math.max(-2.8, Math.min(2.8, (rider.target - rider.x) * 0.02));
-      rider.v += (want - rider.v) * 0.04;
-      rider.x += rider.v;
-      if (rider.v < -0.15) rider.flip = 0; else if (rider.v > 0.15) rider.flip = 1;
-      const pace = Math.min(1, Math.abs(rider.v) / 1.6);
-      rider.phase += Math.abs(rider.v) * 0.09;
-      rider.bob = Math.abs(Math.sin(rider.phase)) * rh * 0.05 * pace;
-
-      tctx.globalCompositeOperation = 'destination-out';
-      tctx.fillStyle = 'rgba(0,0,0,0.004)';
-      tctx.fillRect(0, 0, W, H);
-      tctx.globalCompositeOperation = 'source-over';
-      const s = rider.flip ? -1 : 1; // 1 when facing left, as in the photograph
-      const front = rider.x - s * rw * 0.36, back = rider.x + s * rw * 0.2;
-      const w1 = Math.sin(rider.phase * 0.7) * 2, w2 = Math.sin(rider.phase * 0.7 + 1.7) * 2;
-      if (pace > 0.15 && rider.hooves) {
-        tctx.strokeStyle = 'rgba(230,238,248,0.85)';
-        tctx.lineWidth = 1.5;
-        tctx.beginPath();
-        tctx.moveTo(rider.hooves[0], baseY + 2 + rider.hooves[2]); tctx.lineTo(front, baseY + 2 + w1);
-        tctx.moveTo(rider.hooves[1], baseY + 8 + rider.hooves[3]); tctx.lineTo(back, baseY + 8 + w2);
-        tctx.stroke();
-      }
-      rider.hooves = [front, back, w1, w2];
-    }
-    ascii.riderRect = [(rider.x - rw / 2) / W, (baseY - rh - rider.bob) / H, (rider.x + rw / 2) / W, (baseY - rider.bob) / H];
-    ascii.riderFlip = rider.flip;
-  }
+  const SCENE_SRC = 'assets/scene.jpg';
+  const SKY_SRC = 'assets/sky.png';
+  const CLEAN_SRC = 'assets/scene-clean.jpg';
+  const scene = new Image(), skyMask = new Image(), clean = new Image();
+  clean.onload = function () { if (ascii) ascii.setClean(clean); };
+  clean.src = CLEAN_SRC;
+  scene.onload = function () { if (ascii) ascii.setPhoto(scene); };
+  skyMask.onload = function () { if (ascii) ascii.setSky(skyMask); };
+  scene.src = SCENE_SRC;
+  skyMask.src = SKY_SRC;
 
   // ---- Moving between the front page and a project ----------------------------------
 
-  const view = { project: -1, t: 0, from: 0, to: 0, start: 0, dur: 1, done: null, camFrom: null, camTo: null };
+  const view = { project: -1, t: 0, from: 0, to: 0, start: 0, dur: 1, done: null };
   const projectEl = $('#project');
   const snap = document.createElement('canvas');
 
   function ease(k) { return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
 
-  function animate(to, cam, dur, done) {
-    view.camFrom = ascii ? Object.assign({}, ascii.cam) : null;
-    view.camTo = cam;
+  function animate(to, dur, done) {
     view.from = view.t; view.to = to;
     view.start = performance.now();
     view.dur = reduceMotion ? 1 : dur;
@@ -198,16 +139,7 @@
     if (!view.start) return;
     const k = Math.min(1, (now - view.start) / view.dur), e = ease(k);
     view.t = view.from + (view.to - view.from) * e;
-    if (ascii) {
-      ascii.t = view.t;
-      const a = view.camFrom, b = view.camTo, c = ascii.cam;
-      if (b) {
-        c.dist = Math.exp(Math.log(a.dist) + (Math.log(b.dist) - Math.log(a.dist)) * e);
-        c.incl = a.incl + (b.incl - a.incl) * e;
-        c.phi = a.phi + (b.phi - a.phi) * e;
-        c.lean = a.lean + (b.lean - a.lean) * e;
-      }
-    }
+    if (ascii) ascii.t = view.t;
     if (k >= 1) {
       view.start = 0;
       const d = view.done;
@@ -264,25 +196,16 @@
 
   function enter(i) {
     hideSheet(true);
-    const p = ME.projects[i];
     const already = view.project >= 0;
     view.project = i;
     projectEl.hidden = false;
     body.classList.add('is-project');
-    if (!ascii) { fill(i, 0); return; }
-    if (already) {
-      // From one world to the next: the camera flies to the new view.
-      fill(i, 200);
-      animate(1, p.view, 1800);
-    } else {
-      snapshotHome();
-      riderReset();
-      ascii.cam = Object.assign({}, p.view, { dist: p.view.dist * 1.8 });
-      ascii.t = 0;
-      body.classList.add('in-world');
-      fill(i, 700);
-      animate(1, p.view, 1700, function () { $('#p-back').focus({ preventScroll: true }); });
-    }
+    if (!ascii || already) { fill(i, already ? 0 : 0); requestAnimationFrame(placeCalm); return; }
+    snapshotHome();
+    ascii.t = 0;
+    body.classList.add('in-world');
+    fill(i, 700);
+    animate(1, 1700, function () { $('#p-back').focus({ preventScroll: true }); });
     requestAnimationFrame(placeCalm);
   }
 
@@ -290,8 +213,7 @@
     if (view.project < 0) return;
     body.classList.remove('is-project');
     if (!ascii) { projectEl.hidden = true; view.project = -1; return; }
-    const back = Object.assign({}, ascii.cam, { dist: ascii.cam.dist * 1.8 });
-    animate(0, back, 1300, function () {
+    animate(0, 1300, function () {
       projectEl.hidden = true;
       view.project = -1;
       body.classList.remove('in-world');
@@ -368,6 +290,7 @@
   // ---- Loop -------------------------------------------------------------------------------
 
   let lens = 0;
+  const drift = [0, 0];
   function loop(now) {
     tween(now);
     const inWorld = body.classList.contains('in-world');
@@ -377,14 +300,16 @@
       org.render();
     }
     if (inWorld && ascii && !document.hidden) {
-      riderStep(!reduceMotion && !openSheet);
       lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
       const W = window.innerWidth, H = window.innerHeight;
       pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
       pointer.ly += ((pointer.on ? (0.5 - pointer.y / H) * 0.045 : 0) - pointer.ly) * 0.04;
       ascii.look = [pointer.lx, pointer.ly];
+      drift[0] += ((pointer.on ? pointer.x / W - 0.5 : 0) - drift[0]) * 0.06;
+      drift[1] += ((pointer.on ? pointer.y / H - 0.5 : 0) - drift[1]) * 0.06;
+      ascii.drift = drift;
       ascii.mouse = [pointer.x, pointer.y, lens > 0.5 ? 1 : 0];
-      ascii.draw(reduceMotion ? 3 : now / 1000, [trail]);
+      ascii.draw(reduceMotion ? 3 : now / 1000);
     }
     requestAnimationFrame(loop);
   }
@@ -393,7 +318,6 @@
     org.setup(nameLines(), LAYOUT);
     layoutDom();
     if (ascii) ascii.resize(window.innerWidth, window.innerHeight);
-    riderReset();
     if (view.project >= 0) placeCalm();
     if (reduceMotion) {
       org.settle(false);

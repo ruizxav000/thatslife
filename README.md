@@ -6,9 +6,9 @@ Portfolio v2 for Xavier Ruiz.
 
 **Project pages.** Clicking a found project turns the whole page into that project's own world. The front page breaks apart cell by cell into characters and becomes:
 
-- the ray-traced black hole from Twin Paradox, drawn in ASCII, with each project seen from its own camera position;
-- the rider from the photograph, galloping toward the cursor and leaving tracks in the snow;
-- a lens around the cursor: finer characters and magnification.
+- the photograph of a rider crossing snow, redrawn in characters: ink on paper below the ridge, with edges (ridgelines, the horse, the tracks) drawn as `- | / \`;
+- a ray-traced black hole in a black sky, rising behind the ridge where the moon was;
+- a lens around the cursor (finer characters, magnification) and the land drifting against the sky as the cursor moves.
 
 Back turns the page into the front page again.
 
@@ -16,7 +16,7 @@ Open `index.html` in a browser. Project pages need WebGL.
 
 ## Make it yours
 
-Everything personal is in `ME` at the top of `js/main.js`, including each project's camera `view`.
+Everything personal is in `ME` at the top of `js/main.js`.
 
 ## Files
 
@@ -24,4 +24,4 @@ Everything personal is in `ME` at the top of `js/main.js`, including each projec
 - `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
 - `js/main.js`: content, the two views and the transition between them
 - `js/palettes.js`, `js/colormaps.js`: colour
-- `assets/rider.png`: the rider, cut out of the photograph
+- `assets/scene.jpg`: the photograph; `assets/scene-clean.jpg`: the same without the rider, for the mirrored edges of wide screens; `assets/sky.png`: where the sky is
