@@ -10,7 +10,7 @@
       { label: 'Email', href: '#' }
     ],
     projects: [
-      { title: 'Project One',   meta: 'Launch, 2026',      summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Space Cowboy',  meta: 'ASCII, 2026',       summary: 'One or two sentences on what this was and why it mattered.' },
       { title: 'Project Two',   meta: 'Positioning, 2025', summary: 'One or two sentences on what this was and why it mattered.' },
       { title: 'Project Three', meta: 'Campaign, 2025',    summary: 'One or two sentences on what this was and why it mattered.' },
       { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.' },
