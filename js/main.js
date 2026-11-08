@@ -1,256 +1,224 @@
 (function () {
   'use strict';
 
-  const root = document.documentElement;
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // ---- Content: replace with real projects ---------------------------------
-  // x, y place each project ("food source") in the network, 0–1 across the canvas.
-  const PROJECTS = [
-    { label: '01 Project One',   kind: 'Brand system',   year: '2026', x: 0.06, y: 0.18 },
-    { label: '02 Project Two',   kind: 'Mobile app',     year: '2026', x: 0.36, y: 0.06 },
-    { label: '03 Project Three', kind: 'Data viz',       year: '2025', x: 0.66, y: 0.26 },
-    { label: '04 Project Four',  kind: 'Design system',  year: '2025', x: 0.92, y: 0.08 },
-    { label: '05 Project Five',  kind: 'Installation',   year: '2025', x: 0.14, y: 0.86 },
-    { label: '06 Project Six',   kind: 'Web platform',   year: '2024', x: 0.48, y: 0.62 },
-    { label: '07 Project Seven', kind: 'Research',       year: '2024', x: 0.84, y: 0.9 }
-  ];
-  const BLURB = 'Replace with a short story about this project: the problem, the shape of the solution, and what changed because of it.';
-
-  // ---- Themes (one per microscopy technique) -------------------------------
-  const THEMES = {
-    fluor: {
-      bg: '#05030b', blend: 'lighter',
-      maps: ['plasma', 'inferno'], range: [0.08, 0.6], alpha: 0.75, lineWidth: 0.9,
-      spore: 'glow', fusion: 'rgba(255,214,90,0.85)',
-      net: 'inferno', netRange: [0.2, 0.98], particle: 'rgba(255,246,190,0.95)',
-      food: '#ffd34d', glow: 'rgba(255,190,60,0.35)', label: '#f1ecff', labelBg: 'rgba(5,3,11,0.7)'
-    },
-    stain: {
-      bg: '#67c9b7', blend: 'source-over',
-      maps: ['stain', 'stain'], range: [0.4, 0.95], alpha: 0.7, lineWidth: 1,
-      spore: 'cell', fusion: 'rgba(58,6,22,0.85)',
-      net: 'stain', netRange: [0.35, 1], particle: 'rgba(30,4,12,0.85)',
-      food: '#3a0616', glow: null, label: '#1f060d', labelBg: 'rgba(103,201,183,0.85)'
-    },
-    wave: {
-      bg: '#050607', blend: 'source-over',
-      maps: ['viridis', 'plasma'], range: [0.15, 0.95], alpha: 0.85, lineWidth: 0.9,
-      spore: 'none', fusion: 'rgba(240,249,33,0.55)',
-      net: 'viridis', netRange: [0.12, 1], particle: 'rgba(240,249,33,0.9)',
-      food: '#fde725', glow: 'rgba(181,222,43,0.25)', label: '#eef6f3', labelBg: 'rgba(5,6,7,0.7)'
-    }
+  // ---- Everything personal lives here ----------------------------------------
+  const ME = {
+    name: 'YOUR NAME',
+    role: 'Job Title',
+    place: 'City',
+    timeZone: 'America/New_York',
+    email: 'hello@yourname.com',
+    links: [
+      { label: 'LinkedIn', href: '#' },
+      { label: 'Instagram', href: '#' },
+      { label: 'Read.cv', href: '#' }
+    ],
+    projects: [
+      { title: 'Project One',   type: 'Type', year: '2026', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Two',   type: 'Type', year: '2026', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Three', type: 'Type', year: '2025', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Four',  type: 'Type', year: '2025', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Five',  type: 'Type', year: '2024', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Six',   type: 'Type', year: '2024', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' },
+      { title: 'Project Seven', type: 'Type', year: '2023', role: 'Role', summary: 'One or two sentences on what this was and why it mattered to you.' }
+    ]
   };
 
-  let themeName = THEMES[root.dataset.theme] ? root.dataset.theme : 'fluor';
+  // Where each project waits in the dark (fractions of the screen).
+  const LAYOUT = {
+    landscape: [[0.12, 0.17], [0.42, 0.11], [0.84, 0.15], [0.92, 0.66], [0.74, 0.85], [0.33, 0.86], [0.07, 0.6]],
+    portrait:  [[0.18, 0.13], [0.72, 0.09], [0.88, 0.22], [0.14, 0.78], [0.84, 0.74], [0.3, 0.92], [0.72, 0.92]]
+  };
 
-  // ---- Hero: mycelium ------------------------------------------------------
-  const heroCanvas = document.getElementById('hyphae');
-  const hyphae = new window.Hyphae(heroCanvas, THEMES[themeName]);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = function (s) { return document.querySelector(s); };
 
-  function seedInitial() {
-    const w = hyphae.w, h = hyphae.h;
-    if (w < h) hyphae.seed(w * 0.62, h * 0.04, 9, Math.PI / 2, 2.4);
-    else hyphae.seed(w * 0.94, h * 0.3, 10, Math.PI, 2.6);
-  }
+  document.querySelectorAll('[data-name]').forEach(function (n) { n.textContent = ME.name; });
+  document.querySelectorAll('[data-role]').forEach(function (n) { n.textContent = ME.role; });
+  document.querySelectorAll('[data-place]').forEach(function (n) { n.textContent = ME.place; });
+  document.title = ME.name + ' — ' + ME.role;
 
-  function growInstantly() {
-    let guard = 0;
-    while (hyphae.tips.length && guard++ < 20000) hyphae.update();
-    hyphae.draw();
-  }
+  // ---- Memory: which projects this visitor has already reached ------------------
+  let found = [];
+  try { found = JSON.parse(localStorage.getItem('tl-found') || '[]').filter(function (i) { return i < ME.projects.length; }); } catch (e) {}
+  function remember() { try { localStorage.setItem('tl-found', JSON.stringify(found)); } catch (e) {} }
 
-  seedInitial();
-  if (reduceMotion) growInstantly();
-
-  heroCanvas.addEventListener('pointermove', function (e) {
-    const r = heroCanvas.getBoundingClientRect();
-    hyphae.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
+  // ---- Organism ----------------------------------------------------------------
+  const role = $('#role');
+  const org = new window.Organism($('#base'), $('#over'), {
+    family: '"Archivo", sans-serif',
+    onNameDone: function () {
+      role.classList.add('is-in');
+      org.queue = found.slice();
+    },
+    onConnect: function (i) {
+      if (found.indexOf(i) < 0) { found.push(i); remember(); }
+      sporeEls[i].classList.add('is-found');
+      indexButtons[i].classList.add('is-found');
+      updateCount();
+    }
   });
-  heroCanvas.addEventListener('pointerleave', function () { hyphae.pointer = null; });
-  document.querySelector('.hero').addEventListener('click', function (e) {
-    if (e.target.closest('a, button')) return;
-    const r = heroCanvas.getBoundingClientRect();
-    hyphae.seed(e.clientX - r.left, e.clientY - r.top, 7);
-    life.idle = 0;
-    if (reduceMotion) growInstantly();
-  });
 
-  const rTips = document.getElementById('r-tips');
-  const rFus = document.getElementById('r-fusions');
-  const rCov = document.getElementById('r-cover');
-  const rTime = document.getElementById('r-time');
-  const fmt = new Intl.NumberFormat();
-  function updateReadout() {
-    rTips.textContent = fmt.format(hyphae.tips.length);
-    rFus.textContent = fmt.format(hyphae.fusions);
-    rCov.textContent = (hyphae.coverage() * 100).toFixed(1) + '%';
-    rTime.textContent = fmt.format(hyphae.time);
+  function nameLines() {
+    const words = ME.name.split(/\s+/);
+    return window.innerWidth < 700 && words.length > 1 ? words : [ME.name];
   }
 
-  // When a colony stops growing, let it rest, dissolve it, and start again.
-  const life = { idle: 0, fade: 0 };
-  function lifecycle() {
-    if (hyphae.tips.length) { life.idle = 0; return; }
-    if (++life.idle < 900) return;
-    hyphae.fade(0.06);
-    if (++life.fade > 70) {
-      hyphae.reset();
-      seedInitial();
-      life.idle = 0;
-      life.fade = 0;
+  // ---- Spores (project hit areas + labels) ------------------------------------
+  const sporeWrap = $('#spores');
+  const sporeEls = ME.projects.map(function (p, i) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'spore';
+    b.setAttribute('aria-label', p.title);
+    b.innerHTML = '<span class="spore__label">' + p.title + '<small>' + p.type + ', ' + p.year + '</small></span>';
+    b.addEventListener('mouseenter', function () { org.hover = i; });
+    b.addEventListener('mouseleave', function () { org.hover = -1; });
+    b.addEventListener('focus', function () { org.hover = i; });
+    b.addEventListener('blur', function () { org.hover = -1; });
+    b.addEventListener('click', function () {
+      if (org.spores[i].found) openProject(i);
+      else { org.target = i; if (reduceMotion) { org.queue = [i]; org.settle(false); } }
+    });
+    sporeWrap.appendChild(b);
+    return b;
+  });
+
+  function layoutDom() {
+    const nb = org.nameBox;
+    role.style.top = (nb.y1 + Math.max(18, nb.size * 0.22)) + 'px';
+    org.spores.forEach(function (s, i) {
+      const el = sporeEls[i];
+      el.style.left = s.x + 'px';
+      el.style.top = s.y + 'px';
+      el.classList.toggle('spore--left', s.x > org.w * 0.6);
+      el.classList.toggle('is-found', s.found);
+    });
+  }
+
+  function start() {
+    org.setup(nameLines(), LAYOUT);
+    layoutDom();
+    if (reduceMotion) {
+      org.queue = found.slice();
+      org.settle(false);
+      role.classList.add('is-in');
     }
   }
 
-  // ---- Work: adaptive network ------------------------------------------------
-  const list = document.getElementById('project-list');
-  PROJECTS.forEach(function (p, i) {
+  // ---- Index, contact, project sheets ----------------------------------------
+  const list = $('#index-list');
+  const indexButtons = ME.projects.map(function (p, i) {
     const li = document.createElement('li');
     const b = document.createElement('button');
     b.type = 'button';
-    b.dataset.i = i;
-    b.innerHTML = '<span class="num">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '<span class="t">' + p.label.replace(/^\d+\s/, '') + '</span>' +
-      '<span class="k">' + p.kind + '</span>';
+    b.innerHTML = '<span class="t">' + p.title + '</span><span class="k">' + p.type + '</span><span class="y">' + p.year + '</span>';
+    b.addEventListener('click', function () {
+      if (!org.spores[i].found) org.target = i;
+      openProject(i);
+    });
     li.appendChild(b);
     list.appendChild(li);
+    return b;
   });
-  const buttons = Array.prototype.slice.call(list.querySelectorAll('button'));
-
-  const netCanvas = document.getElementById('network');
-  const net = new window.Physarum(netCanvas, PROJECTS, THEMES[themeName]);
-
-  function highlight(i) {
-    net.focus = i;
-    buttons.forEach(function (b, j) { b.classList.toggle('is-on', j === i); });
-    if (reduceMotion) net.draw(false);
+  function updateCount() {
+    $('#count').textContent = found.length + '/' + ME.projects.length;
   }
-  net.onHover = highlight;
-  net.onSelect = openProject;
-  buttons.forEach(function (b, i) {
-    b.addEventListener('mouseenter', function () { highlight(i); });
-    b.addEventListener('focus', function () { highlight(i); });
-    b.addEventListener('mouseleave', function () { highlight(-1); });
-    b.addEventListener('blur', function () { highlight(-1); });
-    b.addEventListener('click', function () { openProject(i); });
-  });
+  updateCount();
+  found.forEach(function (i) { indexButtons[i].classList.add('is-found'); });
 
-  function settle(n) {
-    for (let i = 0; i < n; i++) net.step();
+  $('#mail').textContent = ME.email;
+  $('#mail').href = 'mailto:' + ME.email;
+  $('#links').innerHTML = ME.links.map(function (l) {
+    return '<li><a href="' + l.href + '" target="_blank" rel="noopener">' + l.label + '</a></li>';
+  }).join('');
+
+  let openSheet = null, lastFocus = null;
+  function show(id) {
+    if (openSheet) openSheet.hidden = true;
+    else lastFocus = document.activeElement;
+    openSheet = document.getElementById(id);
+    openSheet.hidden = false;
+    openSheet.scrollTop = 0;
+    openSheet.querySelector('[data-close]').focus();
   }
-  if (reduceMotion) { settle(500); net.draw(false); }
-
-  const gamma = document.getElementById('gamma');
-  const flux = document.getElementById('flux');
-  gamma.addEventListener('input', function () {
-    net.o.gamma = parseFloat(gamma.value);
-    document.getElementById('v-gamma').textContent = net.o.gamma.toFixed(2);
-    if (reduceMotion) { settle(200); net.draw(false); }
-  });
-  flux.addEventListener('input', function () {
-    net.o.I0 = parseFloat(flux.value);
-    document.getElementById('v-flux').textContent = net.o.I0.toFixed(2);
-    if (reduceMotion) { settle(200); net.draw(false); }
-  });
-  document.getElementById('regrow').addEventListener('click', function () {
-    net.regrow();
-    if (reduceMotion) { settle(500); net.draw(false); }
-  });
-
-  const nIter = document.getElementById('n-iter');
-  const nTubes = document.getElementById('n-tubes');
-  const nLen = document.getElementById('n-len');
-  function updateNetStats() {
-    const s = net.stats();
-    nIter.textContent = fmt.format(s.iter);
-    nTubes.textContent = fmt.format(s.tubes);
-    nLen.textContent = fmt.format(Math.round(s.length));
+  function hide() {
+    if (!openSheet) return;
+    openSheet.hidden = true;
+    openSheet = null;
+    if (lastFocus) lastFocus.focus();
   }
+  document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', hide); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+  $('#open-index').addEventListener('click', function () { show('sheet-index'); });
+  $('#open-contact').addEventListener('click', function () { show('sheet-contact'); });
 
-  // ---- Project dialog ----------------------------------------------------
-  const dialog = document.getElementById('project-dialog');
+  let current = 0;
   function openProject(i) {
-    const p = PROJECTS[i];
-    document.getElementById('pd-meta').textContent = p.kind + ' · ' + p.year;
-    document.getElementById('pd-title').textContent = p.label.replace(/^\d+\s/, '');
-    document.getElementById('pd-blurb').textContent = p.blurb || BLURB;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
+    current = i;
+    const p = ME.projects[i];
+    $('#p-title').textContent = p.title;
+    $('#p-type').textContent = p.type;
+    $('#p-year').textContent = p.year;
+    $('#p-role').textContent = p.role;
+    $('#p-summary').textContent = p.summary;
+    $('#p-next').textContent = 'Next: ' + ME.projects[(i + 1) % ME.projects.length].title;
+    show('sheet-project');
   }
-
-  // ---- Theme switching -----------------------------------------------------
-  const themeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-set-theme]'));
-  function setTheme(name) {
-    themeName = name;
-    root.dataset.theme = name;
-    themeButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setTheme === name)); });
-    hyphae.theme = THEMES[name];
-    hyphae.paint();
-    net.theme = THEMES[name];
-    net.draw(!reduceMotion);
-    try { localStorage.setItem('tl-theme', name); } catch (e) {}
-  }
-  themeButtons.forEach(function (b) {
-    b.addEventListener('click', function () { setTheme(b.dataset.setTheme); });
+  $('#p-next').addEventListener('click', function () {
+    const n = (current + 1) % ME.projects.length;
+    if (!org.spores[n].found) org.target = n;
+    openProject(n);
   });
-  setTheme(themeName);
 
-  // ---- Main loop: only animate what's on screen ------------------------------
-  const visible = { hero: true, net: false };
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.target === heroCanvas) visible.hero = en.isIntersecting;
-        else visible.net = en.isIntersecting;
-      });
-    }).observe(heroCanvas);
-    new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { visible.net = en.isIntersecting; });
-    }, { threshold: 0.3 }).observe(netCanvas);
-  } else {
-    visible.net = true;
-  }
+  // ---- The visitor -------------------------------------------------------------
+  window.addEventListener('pointermove', function (e) {
+    if (!openSheet) org.setPointer(e.clientX, e.clientY);
+  });
+  window.addEventListener('pointerdown', function (e) {
+    if (!openSheet) org.setPointer(e.clientX, e.clientY);
+  });
 
-  let frame = 0;
+  // ---- Clock: the time where you are -----------------------------------------------
+  const clock = $('#clock');
+  let fmt;
+  try { fmt = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', timeZone: ME.timeZone }); } catch (e) { fmt = null; }
+  function tick() { if (fmt) clock.textContent = fmt.format(new Date()); }
+  tick();
+  setInterval(tick, 15000);
+
+  // ---- Loop --------------------------------------------------------------------
   function loop() {
-    frame++;
-    if (!reduceMotion) {
-      if (visible.hero) {
-        hyphae.update();
-        hyphae.draw();
-        lifecycle();
-      }
-      if (visible.net) {
-        const steps = net.iter > 400 ? 2 : 1;
-        for (let i = 0; i < steps; i++) net.step();
-        net.moveParticles();
-        net.draw(true);
-      }
-    }
-    if (frame % 15 === 0) {
-      if (visible.hero) updateReadout();
-      if (visible.net) updateNetStats();
+    if (!reduceMotion && !document.hidden) {
+      org.update();
+      org.render();
     }
     requestAnimationFrame(loop);
   }
-  updateReadout();
-  updateNetStats();
-  requestAnimationFrame(loop);
 
-  // ---- Resize --------------------------------------------------------------
-  let rt = 0, lastW = window.innerWidth;
+  let lastW = 0, rt = 0;
   window.addEventListener('resize', function () {
     clearTimeout(rt);
     rt = setTimeout(function () {
-      // Ignore mobile URL-bar height jitter; rebuild only on real width changes.
-      if (Math.abs(window.innerWidth - lastW) < 40) return;
+      if (Math.abs(window.innerWidth - lastW) < 40 && Math.abs(window.innerHeight - org.h) < 120) return;
       lastW = window.innerWidth;
-      hyphae.resize();
-      seedInitial();
-      if (reduceMotion) growInstantly();
-      net.resize();
-      if (reduceMotion) { settle(500); net.draw(false); }
-    }, 220);
+      start();
+    }, 250);
   });
 
-  document.getElementById('year').textContent = new Date().getFullYear();
+  // Wait for the typeface so the name grows in the right letterforms.
+  let started = false;
+  function go() {
+    if (started) return;
+    started = true;
+    lastW = window.innerWidth;
+    start();
+    requestAnimationFrame(loop);
+  }
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('900 100px "Archivo"').then(go, go);
+    setTimeout(go, 2500);
+  } else {
+    go();
+  }
 })();
