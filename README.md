@@ -25,4 +25,5 @@ Everything personal is in `ME` at the top of `js/main.js`.
 - `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
 - `js/main.js`: content, the two views and the transition between them
 - `js/palettes.js`, `js/colormaps.js`: colour
-- `assets/scene.jpg`: the photograph with the rider lifted out; `assets/rider.png`: the rider; `assets/sky.png`: where the sky is
+- `js/horse.js`: the jointed leg rig and gallop cycle
+- `assets/scene.jpg`: the photograph with the rider lifted out; `assets/horse-body.png`: the rider and the horse without its legs; `assets/sky.png`: where the sky is

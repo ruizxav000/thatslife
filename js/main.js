@@ -111,19 +111,20 @@
 
   const SCENE_SRC = 'assets/scene.jpg';
   const SKY_SRC = 'assets/sky.png';
-  const RIDER_SRC = 'assets/rider.png';
-  const scene = new Image(), skyMask = new Image(), riderImg = new Image();
+  const BODY_SRC = 'assets/horse-body.png';
+  const scene = new Image(), skyMask = new Image(), bodyImg = new Image();
   scene.onload = function () { if (ascii) ascii.setPhoto(scene); };
   skyMask.onload = function () { if (ascii) ascii.setSky(skyMask); };
-  riderImg.onload = function () { if (ascii) ascii.setRider(riderImg); };
   scene.src = SCENE_SRC;
   skyMask.src = SKY_SRC;
-  riderImg.src = RIDER_SRC;
+  bodyImg.src = BODY_SRC;
+  // The photographed body and rider, on legs drawn fresh every frame.
+  const horse = new window.Horse(bodyImg);
 
   // ---- The rider at a gallop ---------------------------------------------------------
   // Everything here is in photo space: u across the photograph (0..1, beyond it mirrored),
-  // v down it. Where he stands in the photograph, and where his hooves are on the sprite:
-  const SPRITE = { u: 0.455, v: 0.503, w: 0.285, h: 0.1886, pivot: [0.57, 0.92], front: [0.12, 0.96], hind: [0.57, 0.92] };
+  // v down it. Where he stands in the photograph:
+  const SPRITE = { u: 0.455, v: 0.503, w: 0.285, h: 0.1886 };
   const GROUND = SPRITE.v + SPRITE.h;
   const START = SPRITE.u + SPRITE.w / 2;
   const CRUISE = 0.0021;               // photo widths per frame: an easy lope
@@ -135,16 +136,12 @@
   const fxc = fx.getContext('2d'), trc = tracks.getContext('2d');
   const toFx = function (u, v) { return [(u + 1) / 3 * FX_W, v * FX_H]; };
 
-  const rider = { u: START, vel: 0, dir: -1, phase: 0, pace: 0, sx: 1, wait: 0, stride: 0, spray: [] };
+  const rider = { u: START, vel: 0, dir: -1, phase: 0, pace: 0, sx: 1, wait: 0, legPhase: [], spray: [] };
 
   function riderReset() {
     rider.u = START; rider.vel = 0; rider.dir = -1; rider.phase = 0; rider.pace = 0; rider.sx = 1; rider.wait = 0;
-    rider.stride = 0; rider.spray = [];
+    rider.legPhase = []; rider.spray = [];
     trc.clearRect(0, 0, FX_W, FX_H);
-  }
-
-  function hoof(rect, at, flip) {
-    return [rect[0] + (flip ? 1 - at[0] : at[0]) * rect[2], rect[1] + at[1] * rect[3]];
   }
 
   function riderStep(moving, dt) {
@@ -179,42 +176,46 @@
     }
     const pace = rider.pace;
     // One smooth rise and fall per stride, and only a little rocking.
-    const lift = (0.5 - 0.5 * Math.cos(rider.phase * 2 - 0.6)) * 0.007 * pace;
+    const lift = (0.5 - 0.5 * Math.cos(rider.phase * 2 - 0.6)) * 0.004 * pace;
     const rect = [rider.u - half, GROUND - SPRITE.h - lift, SPRITE.w, SPRITE.h];
     const r = ascii.rider;
     r.rect = rect;
     r.pivot = [0.5, 0.92];
-    r.rot = Math.sin(rider.phase + 0.8) * 0.022 * pace * Math.sign(rider.sx);
+    r.rot = Math.sin(rider.phase + 0.8) * 0.015 * pace * Math.sign(rider.sx);
     r.sx = rider.sx;
     r.gait = rider.phase;
     r.amt = 0.25 + 0.75 * pace;
+    ascii.setRider(horse.draw(rider.phase / (Math.PI * 2)));
     r.shadow = [rider.u - 0.1 * Math.sign(rider.sx || 1), GROUND + 0.004, SPRITE.w * 0.55 * Math.max(0.4, Math.abs(rider.sx)), 0.011 + 0.002 * pace];
 
     if (!moving) return;
-    const flip = rider.sx < 0 ? 1 : 0;
-    // Hoofprints: each time a stride lands, both pairs of hooves press into the snow.
+    // Each hoof prints where it lands; hind hooves throw snow as they push off.
+    const hooves = horse.hooves();
     trc.globalCompositeOperation = 'destination-out';
     trc.fillStyle = 'rgba(0,0,0,' + (0.0035 * dt).toFixed(4) + ')';
     trc.fillRect(0, 0, FX_W, FX_H);
     trc.globalCompositeOperation = 'source-over';
-    const fh = hoof(rect, SPRITE.front, flip), hh = hoof(rect, SPRITE.hind, flip);
-    const stride = Math.floor(rider.phase / Math.PI);
-    if (pace > 0.2 && stride !== rider.stride) {
-      trc.fillStyle = 'rgba(255,0,0,0.95)';
-      [[fh[0], GROUND - 0.005], [hh[0], GROUND + 0.004]].forEach(function (h) {
-        const at = toFx(h[0] + (Math.random() - 0.5) * 0.004, h[1]);
+    hooves.forEach(function (h, i) {
+      const prev = rider.legPhase[i];
+      rider.legPhase[i] = h.phase;
+      if (prev === undefined || pace < 0.2) return;
+      const u = rect[0] + (0.5 + (h.x - 0.5) * rider.sx) * rect[2];
+      const landed = prev > 0.9 && h.phase < 0.1;
+      const pushed = h.hind && prev < 0.4 && h.phase >= 0.4;
+      if (landed) {
+        const at = toFx(u, GROUND + (h.far ? -0.005 : 0.004));
+        trc.fillStyle = 'rgba(255,0,0,' + (h.far ? 0.7 : 0.95) + ')';
         trc.beginPath();
         trc.ellipse(at[0], at[1], 1.6, 0.9, 0, 0, Math.PI * 2);
         trc.fill();
-      });
-      // Snow kicked up as the hind hooves push off.
-      const n = 5 + (Math.random() * 4 | 0);
-      for (let i = 0; i < n; i++) {
-        const at = toFx(hh[0], GROUND);
-        rider.spray.push({ x: at[0], y: at[1], vx: -Math.sign(rider.vel || -1) * (0.2 + Math.random() * 0.9) * pace, vy: -(0.35 + Math.random() * 0.9) * pace, life: 50 + Math.random() * 30 });
       }
-    }
-    rider.stride = stride;
+      if (pushed) {
+        const at = toFx(u, GROUND);
+        for (let j = 0; j < 4 + (Math.random() * 3 | 0); j++) {
+          rider.spray.push({ x: at[0], y: at[1], vx: -Math.sign(rider.vel || -1) * (0.2 + Math.random() * 0.9) * pace, vy: -(0.35 + Math.random() * 0.9) * pace, life: 50 + Math.random() * 30 });
+        }
+      }
+    });
 
     fxc.clearRect(0, 0, FX_W, FX_H);
     fxc.globalCompositeOperation = 'lighter';

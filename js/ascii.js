@@ -117,15 +117,10 @@ vec3 land(vec2 pu){
   // Turning: he narrows through profile rather than snapping to a mirror image.
   float sx=sign(uRiderSX)*max(abs(uRiderSX),0.06);
   q.x=0.5+(q.x-0.5)/sx;
-  // The gait, as a gentle warp of the photograph (sprite faces left: head at small x).
+  // Head, tail and rider move with the stride (sprite faces left: head at small x).
   float ph=uGait,amt=uGaitAmt;
   float legs=smoothstep(0.56,0.74,q.y);
-  float front=1.-smoothstep(0.36,0.5,q.x);
-  float lp=ph+(1.-front)*2.3;                     // hind legs follow the front ones
-  float reach=max(q.y-0.6,0.)*legs;               // more swing toward the hooves
   vec2 w=vec2(0.);
-  w.x+=0.11*reach*sin(lp);
-  w.y-=0.035*legs*max(0.,sin(lp+1.57));           // hooves lift as they swing forward
   w.y+=0.01*sin(ph-q.x*3.)*(1.-legs);             // a wave through the body
   float head=(1.-smoothstep(0.16,0.3,q.x))*(1.-smoothstep(0.5,0.62,q.y));
   w.y+=0.02*head*sin(ph+0.9);                     // the head nods with the stride
@@ -269,7 +264,7 @@ void main(){
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
   };
   A.setPhoto = function (img) { this.photoAR = img.naturalWidth / img.naturalHeight; this.upload(this.photoTex, img); };
-  A.setRider = function (img) { this.rider.ar = img.naturalWidth / img.naturalHeight; this.upload(this.riderTex, img); };
+  A.setRider = function (img) { this.rider.ar = (img.naturalWidth || img.width) / (img.naturalHeight || img.height); this.upload(this.riderTex, img); };
   A.setFx = function (canvas) { this.upload(this.fxTex, canvas); };
   A.setSky = function (img) { this.upload(this.skyTex, img); };
   // A still of the front page, the starting point of a transition.
