@@ -88,9 +88,8 @@ void main(){
 }`;
 
   const ASCII = `precision highp float;
-uniform sampler2D uBH,uPhoto,uSky,uHome,uAtlas,uRider,uFx;
+uniform sampler2D uBH,uPhoto,uClean,uSky,uHome,uAtlas;
 uniform vec3 uStar;
-uniform vec4 uRiderRect,uShadow;uniform vec2 uRiderPivot;uniform float uRiderRot,uRiderSX,uRiderAR,uGait,uGaitAmt;
 uniform vec2 uRes,uCell,uMoon;
 uniform float uGlyphs,uRampN,uD0,uNoise0,uTime,uT,uExposure,uLensR;
 uniform vec3 uMouse,uAccent;
@@ -100,39 +99,9 @@ vec3 aces(vec3 x){return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.,1.);}
 float lum(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
 float ramp(float l){return floor(clamp(l,0.,1.)*(uRampN-0.001));}
 float mirror(float u){float f=mod(u,2.);return f>1.?2.-f:f;}
-// The snowfield (mirrored beyond the photograph's edges).
-vec3 photo(vec2 u){return texture2D(uPhoto,vec2(mirror(u.x),clamp(u.y,0.,1.))).rgb;}
-// Tracks (r) and kicked-up snow (g), drawn by the page in photo space, u from -1 to 2.
-vec4 fxAt(vec2 u){return texture2D(uFx,vec2((u.x+1.)/3.,clamp(u.y,0.,1.)));}
-// The land with the rider on it: fresh tracks, his shadow, and him, pitching as he gallops.
-vec3 land(vec2 pu){
-  vec3 c=photo(pu);
-  vec4 f=fxAt(pu);
-  c=mix(c,vec3(0.55,0.62,0.75),clamp(f.r*f.a*1.2,0.,1.)*0.8);
-  float sh=1.-smoothstep(0.55,1.,length((pu-uShadow.xy)/uShadow.zw));
-  c*=mix(vec3(1.),vec3(0.76,0.82,0.94),sh*0.85);
-  vec2 q=(pu-uRiderRect.xy)/uRiderRect.zw,d=q-uRiderPivot;
-  d.x*=uRiderAR;float cs=cos(uRiderRot),sn=sin(uRiderRot);
-  d=vec2(cs*d.x+sn*d.y,-sn*d.x+cs*d.y);d.x/=uRiderAR;q=uRiderPivot+d;
-  // Turning: he narrows through profile rather than snapping to a mirror image.
-  float sx=sign(uRiderSX)*max(abs(uRiderSX),0.06);
-  q.x=0.5+(q.x-0.5)/sx;
-  // Head, tail and rider move with the stride (sprite faces left: head at small x).
-  float ph=uGait,amt=uGaitAmt;
-  float legs=smoothstep(0.56,0.74,q.y);
-  vec2 w=vec2(0.);
-  w.y+=0.01*sin(ph-q.x*3.)*(1.-legs);             // a wave through the body
-  float head=(1.-smoothstep(0.16,0.3,q.x))*(1.-smoothstep(0.5,0.62,q.y));
-  w.y+=0.02*head*sin(ph+0.9);                     // the head nods with the stride
-  float tail=smoothstep(0.74,0.88,q.x)*(1.-smoothstep(0.85,0.95,q.y));
-  w+=vec2(0.018*cos(ph-q.x*6.),0.028*sin(ph*1.-q.x*9.))*tail;
-  float rd=smoothstep(0.28,0.36,q.x)*(1.-smoothstep(0.6,0.68,q.x))*(1.-smoothstep(0.42,0.58,q.y));
-  w.y+=0.008*rd*sin(ph+2.6);                      // the rider rides it out
-  q-=w*amt;
-  if(all(greaterThanEqual(q,vec2(0.)))&&all(lessThanEqual(q,vec2(1.)))){
-    vec4 r=texture2D(uRider,q);c=mix(c,r.rgb,smoothstep(0.3,0.6,r.a));}
-  return c;
-}
+// Inside the frame, the photograph; beyond it, a mirrored copy without the rider.
+vec3 photo(vec2 u){vec2 m=vec2(mirror(u.x),clamp(u.y,0.,1.));
+  return (u.x<0.||u.x>1.)?texture2D(uClean,m).rgb:texture2D(uPhoto,m).rgb;}
 void main(){
   vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
   float seed=h12(floor(p/uCell)+0.37);
@@ -169,10 +138,10 @@ void main(){
         idx=st>0.9985?uStar.z:(st>0.997?uStar.y:uStar.x);}
     }else{
       // The land, from the photograph, as ink on paper: darker places get denser characters.
-      vec3 c=land(pu);
+      vec3 c=photo(pu);
       vec2 du=cell/uPhotoRect.zw;
-      float gx=lum(land(pu+vec2(du.x,0.)))-lum(land(pu-vec2(du.x,0.)));
-      float gy=lum(land(pu+vec2(0.,du.y)))-lum(land(pu-vec2(0.,du.y)));
+      float gx=lum(photo(pu+vec2(du.x,0.)))-lum(photo(pu-vec2(du.x,0.)));
+      float gy=lum(photo(pu+vec2(0.,du.y)))-lum(photo(pu-vec2(0.,du.y)));
       float l=lum(c);
       float ink=clamp((0.82-l)/0.6,0.,1.);
       float sat=max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));
@@ -183,9 +152,6 @@ void main(){
       }else idx=ramp(pow(ink,0.8));
       // Paper where the snow is; the photograph's own colour where there is something there.
       bg=mix(vec3(0.95,0.96,0.978),c,clamp(0.25+ink*0.6+sat*1.2,0.,0.9));
-      // Snow thrown up by the hooves.
-      vec4 f=fxAt(pu);float spray=f.g*f.a;
-      if(spray>0.18){idx=spray>0.6?uStar.z:(spray>0.35?uStar.y:uStar.x);fg=vec3(0.32,0.42,0.62);}
     }
   }
   fg*=mix(1.,0.5,calm);bg*=mix(1.,0.12,calm);
@@ -207,9 +173,7 @@ void main(){
     this.bhTex = this.texture(gl.LINEAR);
     this.fbo = gl.createFramebuffer();
     this.photoTex = this.texture(gl.LINEAR);
-    this.riderTex = this.texture(gl.LINEAR);
-    this.fxTex = this.texture(gl.LINEAR);
-    this.rider = { rect: [-1, -1, 0.01, 0.01], pivot: [0.5, 0.92], rot: 0, sx: 1, gait: 0, amt: 0, ar: 1, shadow: [-9, -9, 0.01, 0.01] };
+    this.cleanTex = this.texture(gl.LINEAR);
     this.skyTex = this.texture(gl.LINEAR);
     this.homeTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
@@ -264,8 +228,7 @@ void main(){
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
   };
   A.setPhoto = function (img) { this.photoAR = img.naturalWidth / img.naturalHeight; this.upload(this.photoTex, img); };
-  A.setRider = function (img) { this.rider.ar = (img.naturalWidth || img.width) / (img.naturalHeight || img.height); this.upload(this.riderTex, img); };
-  A.setFx = function (canvas) { this.upload(this.fxTex, canvas); };
+  A.setClean = function (img) { this.upload(this.cleanTex, img); };
   A.setSky = function (img) { this.upload(this.skyTex, img); };
   // A still of the front page, the starting point of a transition.
   A.setHome = function (canvas) { this.upload(this.homeTex, canvas); };
@@ -354,7 +317,7 @@ void main(){
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.enableVertexAttribArray(p.a);
     gl.vertexAttribPointer(p.a, 2, gl.FLOAT, false, 0, 0);
-    const units = [['uBH', this.bhTex], ['uPhoto', this.photoTex], ['uSky', this.skyTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex], ['uRider', this.riderTex], ['uFx', this.fxTex]];
+    const units = [['uBH', this.bhTex], ['uPhoto', this.photoTex], ['uClean', this.cleanTex], ['uSky', this.skyTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex]];
     units.forEach(function (u, i) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, u[1]);
@@ -385,15 +348,6 @@ void main(){
     gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 140) * d);
     gl.uniform4fv(p.u.uCalm, this.calm);
     gl.uniform3fv(p.u.uAccent, this.opts.accent);
-    const r = this.rider;
-    gl.uniform4fv(p.u.uRiderRect, r.rect);
-    gl.uniform2fv(p.u.uRiderPivot, r.pivot);
-    gl.uniform1f(p.u.uRiderRot, r.rot);
-    gl.uniform1f(p.u.uRiderSX, r.sx);
-    gl.uniform1f(p.u.uGait, r.gait);
-    gl.uniform1f(p.u.uGaitAmt, r.amt);
-    gl.uniform1f(p.u.uRiderAR, r.ar);
-    gl.uniform4fv(p.u.uShadow, r.shadow);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
 

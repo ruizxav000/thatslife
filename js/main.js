@@ -99,7 +99,7 @@
   }
 
   // ====================================================================================
-  // Project pages: Space Cowboy. The photograph redrawn in characters, under a black hole.
+  // Project pages: the photograph redrawn in characters, a black hole where the moon was.
   // ====================================================================================
 
   let ascii = null;
@@ -111,126 +111,14 @@
 
   const SCENE_SRC = 'assets/scene.jpg';
   const SKY_SRC = 'assets/sky.png';
-  const BODY_SRC = 'assets/horse-body.png';
-  const scene = new Image(), skyMask = new Image(), bodyImg = new Image();
+  const CLEAN_SRC = 'assets/scene-clean.jpg';
+  const scene = new Image(), skyMask = new Image(), clean = new Image();
+  clean.onload = function () { if (ascii) ascii.setClean(clean); };
+  clean.src = CLEAN_SRC;
   scene.onload = function () { if (ascii) ascii.setPhoto(scene); };
   skyMask.onload = function () { if (ascii) ascii.setSky(skyMask); };
   scene.src = SCENE_SRC;
   skyMask.src = SKY_SRC;
-  bodyImg.src = BODY_SRC;
-  // The photographed body and rider, on legs drawn fresh every frame.
-  const horse = new window.Horse(bodyImg);
-
-  // ---- The rider at a gallop ---------------------------------------------------------
-  // Everything here is in photo space: u across the photograph (0..1, beyond it mirrored),
-  // v down it. Where he stands in the photograph:
-  const SPRITE = { u: 0.455, v: 0.503, w: 0.285, h: 0.1886 };
-  const GROUND = SPRITE.v + SPRITE.h;
-  const START = SPRITE.u + SPRITE.w / 2;
-  const CRUISE = 0.0021;               // photo widths per frame: an easy lope
-
-  // Tracks persist and slowly fill in; kicked-up snow is redrawn every frame.
-  const FX_W = 750, FX_H = 338;
-  const fx = document.createElement('canvas'), tracks = document.createElement('canvas');
-  fx.width = tracks.width = FX_W; fx.height = tracks.height = FX_H;
-  const fxc = fx.getContext('2d'), trc = tracks.getContext('2d');
-  const toFx = function (u, v) { return [(u + 1) / 3 * FX_W, v * FX_H]; };
-
-  const rider = { u: START, vel: 0, dir: -1, phase: 0, pace: 0, sx: 1, wait: 0, legPhase: [], spray: [] };
-
-  function riderReset() {
-    rider.u = START; rider.vel = 0; rider.dir = -1; rider.phase = 0; rider.pace = 0; rider.sx = 1; rider.wait = 0;
-    rider.legPhase = []; rider.spray = [];
-    trc.clearRect(0, 0, FX_W, FX_H);
-  }
-
-  function riderStep(moving, dt) {
-    const L = ascii.layout(), W = window.innerWidth;
-    const uL = -L.x / L.w, uR = (W - L.x) / L.w, half = SPRITE.w / 2;
-    if (moving) {
-      const ridgeY = L.y + L.h * 0.4;
-      const chasing = pointer.on && performance.now() - pointer.moved < 2500 && pointer.y > ridgeY;
-      let want;
-      if (chasing) {
-        const target = (pointer.x - L.x) / L.w, gap = target - rider.u;
-        // Ease into a stop near the cursor instead of hunting back and forth.
-        want = Math.sign(gap) * Math.min(CRUISE * 1.3, Math.abs(gap) * 0.02);
-        if (Math.abs(gap) < 0.015) want = 0;
-      } else {
-        want = rider.dir * CRUISE;
-        if ((rider.dir < 0 && rider.u < uL - half) || (rider.dir > 0 && rider.u > uR + half)) {
-          rider.wait += dt;
-          if (rider.wait > 110) { rider.u = rider.dir < 0 ? uR + half : uL - half; rider.wait = 0; }
-          else want = rider.vel;
-        }
-      }
-      const k = 1 - Math.pow(1 - 0.018, dt);   // gentle to speed up, gentle to settle
-      rider.vel += (want - rider.vel) * k;
-      rider.u += rider.vel * dt;
-      if (Math.abs(rider.vel) > CRUISE * 0.15) rider.dir = rider.vel < 0 ? -1 : 1;
-      // Stride rate follows speed, but a walking horse still moves its legs.
-      rider.pace += (Math.min(1, Math.abs(rider.vel) / CRUISE) - rider.pace) * (1 - Math.pow(0.96, dt));
-      rider.phase += (0.03 + Math.abs(rider.vel) * 31) * dt;   // under one stride a second
-      // Turning takes a moment.
-      rider.sx += ((rider.dir < 0 ? 1 : -1) - rider.sx) * (1 - Math.pow(0.93, dt));
-    }
-    const pace = rider.pace;
-    // One smooth rise and fall per stride, and only a little rocking.
-    const lift = (0.5 - 0.5 * Math.cos(rider.phase * 2 - 0.6)) * 0.004 * pace;
-    const rect = [rider.u - half, GROUND - SPRITE.h - lift, SPRITE.w, SPRITE.h];
-    const r = ascii.rider;
-    r.rect = rect;
-    r.pivot = [0.5, 0.92];
-    r.rot = Math.sin(rider.phase + 0.8) * 0.015 * pace * Math.sign(rider.sx);
-    r.sx = rider.sx;
-    r.gait = rider.phase;
-    r.amt = 0.25 + 0.75 * pace;
-    ascii.setRider(horse.draw(rider.phase / (Math.PI * 2)));
-    r.shadow = [rider.u - 0.1 * Math.sign(rider.sx || 1), GROUND + 0.004, SPRITE.w * 0.55 * Math.max(0.4, Math.abs(rider.sx)), 0.011 + 0.002 * pace];
-
-    if (!moving) return;
-    // Each hoof prints where it lands; hind hooves throw snow as they push off.
-    const hooves = horse.hooves();
-    trc.globalCompositeOperation = 'destination-out';
-    trc.fillStyle = 'rgba(0,0,0,' + (0.0035 * dt).toFixed(4) + ')';
-    trc.fillRect(0, 0, FX_W, FX_H);
-    trc.globalCompositeOperation = 'source-over';
-    hooves.forEach(function (h, i) {
-      const prev = rider.legPhase[i];
-      rider.legPhase[i] = h.phase;
-      if (prev === undefined || pace < 0.2) return;
-      const u = rect[0] + (0.5 + (h.x - 0.5) * rider.sx) * rect[2];
-      const landed = prev > 0.9 && h.phase < 0.1;
-      const pushed = h.hind && prev < 0.4 && h.phase >= 0.4;
-      if (landed) {
-        const at = toFx(u, GROUND + (h.far ? -0.005 : 0.004));
-        trc.fillStyle = 'rgba(255,0,0,' + (h.far ? 0.7 : 0.95) + ')';
-        trc.beginPath();
-        trc.ellipse(at[0], at[1], 1.6, 0.9, 0, 0, Math.PI * 2);
-        trc.fill();
-      }
-      if (pushed) {
-        const at = toFx(u, GROUND);
-        for (let j = 0; j < 4 + (Math.random() * 3 | 0); j++) {
-          rider.spray.push({ x: at[0], y: at[1], vx: -Math.sign(rider.vel || -1) * (0.2 + Math.random() * 0.9) * pace, vy: -(0.35 + Math.random() * 0.9) * pace, life: 50 + Math.random() * 30 });
-        }
-      }
-    });
-
-    fxc.clearRect(0, 0, FX_W, FX_H);
-    fxc.globalCompositeOperation = 'lighter';
-    fxc.drawImage(tracks, 0, 0);
-    const floor = toFx(0, GROUND + 0.01)[1];
-    for (let i = rider.spray.length - 1; i >= 0; i--) {
-      const s = rider.spray[i];
-      s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 0.025 * dt; s.vx *= Math.pow(0.985, dt); s.life -= dt;
-      if (s.life <= 0 || s.y > floor) { rider.spray.splice(i, 1); continue; }
-      fxc.fillStyle = 'rgba(0,255,0,' + Math.min(1, s.life / 30).toFixed(2) + ')';
-      fxc.fillRect(s.x - 0.8, s.y - 0.8, 1.6, 1.6);
-    }
-    fxc.globalCompositeOperation = 'source-over';
-    ascii.setFx(fx);
-  }
 
   // ---- Moving between the front page and a project ----------------------------------
 
@@ -314,7 +202,6 @@
     body.classList.add('is-project');
     if (!ascii || already) { fill(i, already ? 0 : 0); requestAnimationFrame(placeCalm); return; }
     snapshotHome();
-    riderReset();
     ascii.t = 0;
     body.classList.add('in-world');
     fill(i, 700);
@@ -402,11 +289,9 @@
 
   // ---- Loop -------------------------------------------------------------------------------
 
-  let lens = 0, last = 0;
+  let lens = 0;
   const drift = [0, 0];
   function loop(now) {
-    const dt = last ? Math.min(3, (now - last) / 16.667) : 1;
-    last = now;
     tween(now);
     const inWorld = body.classList.contains('in-world');
     // The front page rests while a project or a sheet covers it.
@@ -415,7 +300,6 @@
       org.render();
     }
     if (inWorld && ascii && !document.hidden) {
-      riderStep(!reduceMotion && !openSheet && view.t > 0.3, dt);
       lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
       const W = window.innerWidth, H = window.innerHeight;
       pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
