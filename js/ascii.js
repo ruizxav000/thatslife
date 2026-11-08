@@ -90,7 +90,7 @@ void main(){
   const ASCII = `precision highp float;
 uniform sampler2D uBH,uPhoto,uSky,uHome,uAtlas,uRider,uFx;
 uniform vec3 uStar;
-uniform vec4 uRiderRect,uShadow;uniform vec2 uRiderPivot;uniform float uRiderRot,uRiderFlip,uRiderAR;
+uniform vec4 uRiderRect,uShadow;uniform vec2 uRiderPivot;uniform float uRiderRot,uRiderSX,uRiderAR,uGait,uGaitAmt;
 uniform vec2 uRes,uCell,uMoon;
 uniform float uGlyphs,uRampN,uD0,uNoise0,uTime,uT,uExposure,uLensR;
 uniform vec3 uMouse,uAccent;
@@ -114,7 +114,26 @@ vec3 land(vec2 pu){
   vec2 q=(pu-uRiderRect.xy)/uRiderRect.zw,d=q-uRiderPivot;
   d.x*=uRiderAR;float cs=cos(uRiderRot),sn=sin(uRiderRot);
   d=vec2(cs*d.x+sn*d.y,-sn*d.x+cs*d.y);d.x/=uRiderAR;q=uRiderPivot+d;
-  if(uRiderFlip>0.5)q.x=1.-q.x;
+  // Turning: he narrows through profile rather than snapping to a mirror image.
+  float sx=sign(uRiderSX)*max(abs(uRiderSX),0.06);
+  q.x=0.5+(q.x-0.5)/sx;
+  // The gait, as a gentle warp of the photograph (sprite faces left: head at small x).
+  float ph=uGait,amt=uGaitAmt;
+  float legs=smoothstep(0.56,0.74,q.y);
+  float front=1.-smoothstep(0.36,0.5,q.x);
+  float lp=ph+(1.-front)*2.3;                     // hind legs follow the front ones
+  float reach=max(q.y-0.6,0.)*legs;               // more swing toward the hooves
+  vec2 w=vec2(0.);
+  w.x+=0.11*reach*sin(lp);
+  w.y-=0.035*legs*max(0.,sin(lp+1.57));           // hooves lift as they swing forward
+  w.y+=0.01*sin(ph-q.x*3.)*(1.-legs);             // a wave through the body
+  float head=(1.-smoothstep(0.16,0.3,q.x))*(1.-smoothstep(0.5,0.62,q.y));
+  w.y+=0.02*head*sin(ph+0.9);                     // the head nods with the stride
+  float tail=smoothstep(0.74,0.88,q.x)*(1.-smoothstep(0.85,0.95,q.y));
+  w+=vec2(0.018*cos(ph-q.x*6.),0.028*sin(ph*1.-q.x*9.))*tail;
+  float rd=smoothstep(0.28,0.36,q.x)*(1.-smoothstep(0.6,0.68,q.x))*(1.-smoothstep(0.42,0.58,q.y));
+  w.y+=0.008*rd*sin(ph+2.6);                      // the rider rides it out
+  q-=w*amt;
   if(all(greaterThanEqual(q,vec2(0.)))&&all(lessThanEqual(q,vec2(1.)))){
     vec4 r=texture2D(uRider,q);c=mix(c,r.rgb,smoothstep(0.3,0.6,r.a));}
   return c;
@@ -195,7 +214,7 @@ void main(){
     this.photoTex = this.texture(gl.LINEAR);
     this.riderTex = this.texture(gl.LINEAR);
     this.fxTex = this.texture(gl.LINEAR);
-    this.rider = { rect: [-1, -1, 0.01, 0.01], pivot: [0.57, 0.92], rot: 0, flip: 0, ar: 1, shadow: [-9, -9, 0.01, 0.01] };
+    this.rider = { rect: [-1, -1, 0.01, 0.01], pivot: [0.5, 0.92], rot: 0, sx: 1, gait: 0, amt: 0, ar: 1, shadow: [-9, -9, 0.01, 0.01] };
     this.skyTex = this.texture(gl.LINEAR);
     this.homeTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
@@ -375,7 +394,9 @@ void main(){
     gl.uniform4fv(p.u.uRiderRect, r.rect);
     gl.uniform2fv(p.u.uRiderPivot, r.pivot);
     gl.uniform1f(p.u.uRiderRot, r.rot);
-    gl.uniform1f(p.u.uRiderFlip, r.flip);
+    gl.uniform1f(p.u.uRiderSX, r.sx);
+    gl.uniform1f(p.u.uGait, r.gait);
+    gl.uniform1f(p.u.uGaitAmt, r.amt);
     gl.uniform1f(p.u.uRiderAR, r.ar);
     gl.uniform4fv(p.u.uShadow, r.shadow);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
