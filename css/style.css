@@ -1,13 +1,13 @@
 :root {
-  --bg: #040208;
-  --fg: #ece8f7;
-  --dim: #8a83a1;
+  --bg: #e8e9e5;
+  --fg: #141418;
+  --dim: #6a6b72;
   --faint: color-mix(in srgb, var(--fg) 12%, transparent);
-  --gold: #ffcf6e;
+  --gold: #1440ff;
   --display: "Unbounded", system-ui, sans-serif;
   --font: "Unbounded", system-ui, sans-serif;
   --edge: max(18px, env(safe-area-inset-left));
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

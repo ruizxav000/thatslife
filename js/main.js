@@ -25,7 +25,7 @@
   };
 
   // Colour: one of the palettes in js/palettes.js.
-  const PALETTE = window.PALETTES[window.PALETTE_OVERRIDE || 'fluor'];
+  const PALETTE = window.PALETTES[window.PALETTE_OVERRIDE || 'ink'];
   (function applyPalette(p) {
     const r = document.documentElement.style;
     r.setProperty('--bg', p.bg);
