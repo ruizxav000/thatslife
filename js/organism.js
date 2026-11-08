@@ -17,7 +17,6 @@
   const CELL = 3;       // fusion grid, px
   const COARSE = 18;    // nearest-thread lookup grid, px
   const BUCK = 32;      // light-field lookup grid, px
-  const BG = '#040208';
 
   function gauss() {
     let u = 0;
@@ -25,6 +24,7 @@
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * Math.random());
   }
   function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
+  function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
 
   function Organism(base, over, opts) {
     this.glow = document.createElement('canvas');
@@ -33,6 +33,7 @@
     this.b = base.getContext('2d');
     this.o = over.getContext('2d');
     this.opts = opts || {};
+    this.setPalette(this.opts.palette || window.PALETTES.fluor);
     this.sx1 = new Float32Array(CAP);
     this.sy1 = new Float32Array(CAP);
     this.sx2 = new Float32Array(CAP);
@@ -48,6 +49,11 @@
     this.hover = -1;
   }
   const P = Organism.prototype;
+
+  P.setPalette = function (pal) {
+    this.pal = pal;
+    window.Colormap.define('live', pal.live);
+  };
 
   P.setup = function (lines, sporeLayout) {
     this.lines = lines;
@@ -93,7 +99,7 @@
     this.bw = Math.ceil(this.w / BUCK) + 1;
     this.bh = Math.ceil(this.h / BUCK) + 1;
     this.buckets = new Array(this.bw * this.bh);
-    this.b.fillStyle = BG;
+    this.b.fillStyle = this.pal.bg;
     this.b.fillRect(0, 0, this.w, this.h);
     this.buildMask();
     this.placeSpores();
@@ -150,7 +156,7 @@
 
     // Tinted copy used as the faint body of the letters once grown.
     x.globalCompositeOperation = 'source-in';
-    x.fillStyle = 'rgb(118,52,236)';
+    x.fillStyle = this.pal.body;
     x.fillRect(0, 0, W, H);
     this.maskCanvas = c;
   };
@@ -457,11 +463,11 @@
         p.lineTo(this.sx2[i], this.sy2[i]);
       }
       b.save();
-      b.globalCompositeOperation = 'lighter';
+      b.globalCompositeOperation = this.pal.dark ? 'lighter' : 'source-over';
       b.lineWidth = 0.9;
-      b.strokeStyle = 'rgba(156,78,255,0.9)';
+      b.strokeStyle = this.pal.name;
       b.stroke(pn);
-      b.strokeStyle = 'rgba(120,60,240,0.7)';
+      b.strokeStyle = this.pal.free;
       b.stroke(pf);
       b.restore();
       this.drawn = this.nSeg;
@@ -476,7 +482,8 @@
 
     // Fluorescent bloom: a half-size, blurred copy of the threads,
     // refreshed every few frames and laid back over everything.
-    if (f % 12 === 0) {
+    const pal = this.pal;
+    if (pal.glow && f % 12 === 0) {
       const gx = this.glow.getContext('2d');
       gx.clearRect(0, 0, this.glow.width, this.glow.height);
       gx.filter = 'blur(2px)';
@@ -487,10 +494,12 @@
     // Live layer.
     o.clearRect(0, 0, W, H);
     o.save();
-    o.globalCompositeOperation = 'lighter';
-    o.globalAlpha = 0.55;
-    o.drawImage(this.glow, 0, 0, W, H);
-    o.globalAlpha = 1;
+    o.globalCompositeOperation = pal.dark ? 'lighter' : 'source-over';
+    if (pal.glow) {
+      o.globalAlpha = pal.glow;
+      o.drawImage(this.glow, 0, 0, W, H);
+      o.globalAlpha = 1;
+    }
 
     // Fresh growth glows hot, then cools into the permanent violet.
     const AGE = 48;
@@ -507,7 +516,7 @@
       for (let k = 0; k < NB; k++) {
         if (!paths[k]) continue;
         const t = 1 - k / NB;
-        o.strokeStyle = window.Colormap.css('plasma', 0.5 + 0.45 * t, 0.12 + 0.8 * t * t);
+        o.strokeStyle = window.Colormap.css('live', t, 0.12 + 0.8 * t * t);
         o.stroke(paths[k]);
       }
     }
@@ -526,13 +535,13 @@
         o.moveTo(this.sx2[path[s0]], this.sy2[path[s0]]);
         for (let j = s0 + 1; j <= s1; j++) o.lineTo(this.sx2[path[j]], this.sy2[path[j]]);
         o.lineWidth = 0.8 + c * 0.55;
-        o.strokeStyle = 'rgba(255,' + (150 + c * 25) + ',' + (60 + c * 35) + ',' + ((0.12 + c * 0.24) * pu.a) + ')';
+        o.strokeStyle = rgba(pal.trail, (0.12 + c * 0.24) * pu.a);
         o.stroke();
       }
       const hx = this.sx2[path[k]], hy = this.sy2[path[k]];
       const g = o.createRadialGradient(hx, hy, 0, hx, hy, 9);
-      g.addColorStop(0, 'rgba(255,244,200,' + pu.a + ')');
-      g.addColorStop(1, 'rgba(255,150,60,0)');
+      g.addColorStop(0, rgba(pal.head, pu.a));
+      g.addColorStop(1, rgba(pal.trail, 0));
       o.fillStyle = g;
       o.beginPath(); o.arc(hx, hy, 9, 0, TAU); o.fill();
     }
@@ -546,11 +555,11 @@
       const r = s.found ? 20 + 10 * s.bloom + (hot ? 10 : 0) : 9 + 5 * breath + (hot ? 6 : 0);
       const a = s.found ? 0.32 + 0.12 * breath : 0.09 + 0.1 * breath + (hot ? 0.1 : 0);
       const g = o.createRadialGradient(s.x, s.y, 0, s.x, s.y, r);
-      g.addColorStop(0, 'rgba(255,214,120,' + a + ')');
-      g.addColorStop(1, 'rgba(255,120,40,0)');
+      g.addColorStop(0, rgba(pal.spore, a));
+      g.addColorStop(1, rgba(pal.spore, 0));
       o.fillStyle = g;
       o.beginPath(); o.arc(s.x, s.y, r, 0, TAU); o.fill();
-      o.fillStyle = s.found ? 'rgba(255,240,200,0.95)' : 'rgba(255,220,150,' + (0.35 + 0.3 * breath) + ')';
+      o.fillStyle = s.found ? rgba(pal.head, 0.95) : rgba(pal.spore, 0.35 + 0.3 * breath);
       o.beginPath(); o.arc(s.x, s.y, s.found ? 2.6 + s.bloom : 1.4, 0, TAU); o.fill();
     }
 
@@ -581,12 +590,12 @@
       for (let k = 0; k < NB; k++) {
         if (!paths[k]) continue;
         const t = 1 - k / NB;
-        o.strokeStyle = window.Colormap.css('plasma', 0.55 + 0.4 * t, (0.08 + 0.75 * t * t) * fade);
+        o.strokeStyle = window.Colormap.css('live', 0.1 + 0.9 * t, (0.08 + 0.75 * t * t) * fade);
         o.stroke(paths[k]);
       }
       const g = o.createRadialGradient(px, py, 0, px, py, 16);
-      g.addColorStop(0, 'rgba(255,236,190,' + 0.55 * fade + ')');
-      g.addColorStop(1, 'rgba(255,170,80,0)');
+      g.addColorStop(0, rgba(pal.head, 0.55 * fade));
+      g.addColorStop(1, rgba(pal.trail, 0));
       o.fillStyle = g;
       o.beginPath(); o.arc(px, py, 16, 0, TAU); o.fill();
     }
@@ -610,6 +619,5 @@
     this.render();
   };
 
-  Organism.BG = BG;
   window.Organism = Organism;
 })();

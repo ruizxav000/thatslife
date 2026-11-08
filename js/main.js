@@ -24,6 +24,17 @@
     portrait:  [[0.2, 0.13], [0.78, 0.12], [0.16, 0.8], [0.82, 0.76], [0.5, 0.92]]
   };
 
+  // Colour: one of the palettes in js/palettes.js.
+  const PALETTE = window.PALETTES[window.PALETTE_OVERRIDE || 'fluor'];
+  (function applyPalette(p) {
+    const r = document.documentElement.style;
+    r.setProperty('--bg', p.bg);
+    r.setProperty('--fg', p.css.fg);
+    r.setProperty('--dim', p.css.dim);
+    r.setProperty('--gold', p.css.accent);
+    r.colorScheme = p.dark ? 'dark' : 'light';
+  })(PALETTE);
+
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = function (s) { return document.querySelector(s); };
 
@@ -34,6 +45,7 @@
   const role = $('#role');
   const org = new window.Organism($('#base'), $('#over'), {
     family: '"Unbounded", sans-serif',
+    palette: PALETTE,
     weight: 900,
     stretch: 'normal',
     onNameDone: function () {

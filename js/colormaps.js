@@ -19,8 +19,8 @@
   }
 
   const LUT = {};
-  Object.keys(STOPS).forEach(function (name) {
-    const s = STOPS[name].map(hex);
+  function define(name, stops) {
+    const s = stops.map(hex);
     const lut = new Array(256);
     for (let i = 0; i < 256; i++) {
       const t = (i / 255) * (s.length - 1);
@@ -29,7 +29,8 @@
       lut[i] = [0, 1, 2].map(function (q) { return Math.round(s[j][q] + (s[j + 1][q] - s[j][q]) * f); });
     }
     LUT[name] = lut;
-  });
+  }
+  Object.keys(STOPS).forEach(function (name) { define(name, STOPS[name]); });
 
   function rgb(name, t) {
     const i = Math.max(0, Math.min(255, Math.round(t * 255)));
@@ -41,5 +42,5 @@
     return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a === undefined ? 1 : a) + ')';
   }
 
-  window.Colormap = { rgb: rgb, css: css };
+  window.Colormap = { rgb: rgb, css: css, define: define };
 })();

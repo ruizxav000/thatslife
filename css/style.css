@@ -2,7 +2,7 @@
   --bg: #040208;
   --fg: #ece8f7;
   --dim: #8a83a1;
-  --faint: rgba(236, 232, 247, 0.12);
+  --faint: color-mix(in srgb, var(--fg) 12%, transparent);
   --gold: #ffcf6e;
   --display: "Unbounded", system-ui, sans-serif;
   --font: "Unbounded", system-ui, sans-serif;
@@ -72,7 +72,7 @@ button.corner:hover { color: var(--fg); }
 /* Sheets */
 .sheet {
   position: fixed; inset: 0; z-index: 10; overflow-y: auto;
-  background: rgba(4, 2, 8, 0.86);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
   padding: clamp(72px, 12vh, 140px) var(--edge) 80px;
   cursor: auto;
@@ -109,7 +109,7 @@ button.corner:hover { color: var(--fg); }
 .project__meta { font-size: 14px; color: var(--dim); }
 .project__summary { font-size: clamp(17px, 1.6vw, 22px); line-height: 1.55; max-width: 42ch; }
 .project__media { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.frame { aspect-ratio: 4 / 5; border: 1px solid var(--faint); border-radius: 2px; background: rgba(236, 232, 247, 0.02); }
+.frame { aspect-ratio: 4 / 5; border: 1px solid var(--faint); border-radius: 2px; background: color-mix(in srgb, var(--fg) 3%, transparent); }
 .frame--wide { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
 .next { justify-self: start; font-size: 13px; color: var(--dim); padding: 8px 0; }
 .next:hover { color: var(--gold); }
