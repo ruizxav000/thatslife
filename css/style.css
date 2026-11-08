@@ -4,6 +4,7 @@
   --dim: #8a83a1;
   --faint: rgba(236, 232, 247, 0.12);
   --gold: #ffcf6e;
+  --display: "Unbounded", system-ui, sans-serif;
   --font: "Archivo", system-ui, sans-serif;
   --edge: max(18px, env(safe-area-inset-left));
   color-scheme: dark;
@@ -89,7 +90,7 @@ button.corner:hover { color: var(--fg); }
 .index { list-style: none; max-width: 1100px; margin: 0 auto; }
 .index button {
   width: 100%; text-align: left; padding: clamp(14px, 2.4vh, 22px) 0; border-top: 1px solid var(--faint);
-  font-size: clamp(30px, 5vw, 72px); font-weight: 700; font-stretch: 118%; line-height: 1; letter-spacing: -0.02em;
+  font-family: var(--display); font-size: clamp(28px, 4.6vw, 64px); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em;
   color: rgba(236, 232, 247, 0.3); transition: color 0.3s;
 }
 .index li:last-child button { border-bottom: 1px solid var(--faint); }
@@ -99,14 +100,14 @@ button.corner:hover { color: var(--fg); }
 .contact { max-width: 1100px; margin: 0 auto; min-height: 60vh; display: grid; align-content: center; gap: 40px; }
 .contact__links {
   list-style: none; display: grid; gap: 8px;
-  font-size: clamp(36px, 7vw, 104px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1;
+  font-family: var(--display); font-size: clamp(34px, 6.5vw, 96px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.05;
 }
 .contact__links a { text-decoration: none; }
 .contact__links a:hover { color: var(--gold); }
 
 .project { max-width: 1100px; margin: 0 auto; display: grid; gap: clamp(28px, 5vh, 56px); }
 .project__head { display: grid; gap: 28px; }
-.project h2 { font-size: clamp(44px, 9vw, 140px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.035em; line-height: 0.92; }
+.project h2 { font-family: var(--display); font-size: clamp(40px, 8vw, 124px); font-weight: 700; letter-spacing: -0.035em; line-height: 0.95; }
 .project__meta { font-size: 14px; color: var(--dim); }
 .project__summary { font-size: clamp(18px, 1.8vw, 24px); line-height: 1.45; max-width: 40ch; }
 .project__media { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

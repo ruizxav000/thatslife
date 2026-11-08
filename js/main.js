@@ -38,7 +38,9 @@
 
   const role = $('#role');
   const org = new window.Organism($('#base'), $('#over'), {
-    family: '"Archivo", sans-serif',
+    family: '"Unbounded", sans-serif',
+    weight: 900,
+    stretch: 'normal',
     onNameDone: function () {
       role.classList.add('is-in');
       org.queue = found.slice();
@@ -191,7 +193,7 @@
     requestAnimationFrame(loop);
   }
   if (document.fonts && document.fonts.load) {
-    document.fonts.load('900 100px "Archivo"').then(go, go);
+    document.fonts.load('900 100px "Unbounded"').then(go, go);
     setTimeout(go, 2500);
   } else {
     go();
