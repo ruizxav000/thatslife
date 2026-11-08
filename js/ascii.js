@@ -30,6 +30,9 @@
   // Where things are in the photograph (fractions of its width and height).
   const SCENE = { rider: 0.55, moon: [0.5, 0.31], moonTall: [0.5, 0.27] };
 
+  // How far the scene texture carries the land past the photograph's left and right edges.
+  const EXT_L = 1.4, EXT_R = 0.9;
+
   const VERT = 'attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}';
 
   const COMMON = `
@@ -88,7 +91,7 @@ void main(){
 }`;
 
   const ASCII = `precision highp float;
-uniform sampler2D uBH,uPhoto,uClean,uSky,uHome,uAtlas;
+uniform sampler2D uBH,uPhoto,uSky,uHome,uAtlas;
 uniform vec3 uStar;
 uniform vec2 uRes,uCell,uMoon;
 uniform float uGlyphs,uRampN,uD0,uNoise0,uTime,uT,uExposure,uLensR;
@@ -98,10 +101,10 @@ float h12(vec2 p){vec3 q=fract(vec3(p.xyx)*0.1031);q+=dot(q,q.yzx+33.33);return 
 vec3 aces(vec3 x){return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.,1.);}
 float lum(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
 float ramp(float l){return floor(clamp(l,0.,1.)*(uRampN-0.001));}
-float mirror(float u){float f=mod(u,2.);return f>1.?2.-f:f;}
-// Inside the frame, the photograph; beyond it, a mirrored copy without the rider.
-vec3 photo(vec2 u){vec2 m=vec2(mirror(u.x),clamp(u.y,0.,1.));
-  return (u.x<0.||u.x>1.)?texture2D(uClean,m).rgb:texture2D(uPhoto,m).rgb;}
+// The scene texture is the photograph with land carried on past both edges.
+// u is in photograph widths; the texture spans -EXT_L .. 1+EXT_R.
+vec2 sceneUV(vec2 u){return vec2(clamp((u.x+${EXT_L.toFixed(2)})/${(1 + EXT_L + EXT_R).toFixed(2)},0.,1.),clamp(u.y,0.,1.));}
+vec3 photo(vec2 u){return texture2D(uPhoto,sceneUV(u)).rgb;}
 void main(){
   vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
   float seed=h12(floor(p/uCell)+0.37);
@@ -124,7 +127,7 @@ void main(){
     idx=uNoise0+floor(h12(cid+floor(uTime*20.))*(uGlyphs-uNoise0));fg=uAccent;
   }else{
     vec2 pu=(sc-uPhotoRect.xy)/uPhotoRect.zw;
-    float sky=pu.y<0.?1.:texture2D(uSky,vec2(mirror(pu.x),clamp(pu.y,0.,1.))).r;
+    float sky=pu.y<0.?1.:texture2D(uSky,sceneUV(pu)).r;
     if(sky>0.5){
       // The sky is the black hole, seen from close by.
       vec2 bu=(sc-uMoon)/uRes+0.5;
@@ -173,7 +176,6 @@ void main(){
     this.bhTex = this.texture(gl.LINEAR);
     this.fbo = gl.createFramebuffer();
     this.photoTex = this.texture(gl.LINEAR);
-    this.cleanTex = this.texture(gl.LINEAR);
     this.skyTex = this.texture(gl.LINEAR);
     this.homeTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
@@ -227,8 +229,7 @@ void main(){
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
   };
-  A.setPhoto = function (img) { this.photoAR = img.naturalWidth / img.naturalHeight; this.upload(this.photoTex, img); };
-  A.setClean = function (img) { this.upload(this.cleanTex, img); };
+  A.setPhoto = function (img) { this.photoAR = img.naturalWidth / (1 + EXT_L + EXT_R) / img.naturalHeight; this.upload(this.photoTex, img); };
   A.setSky = function (img) { this.upload(this.skyTex, img); };
   // A still of the front page, the starting point of a transition.
   A.setHome = function (canvas) { this.upload(this.homeTex, canvas); };
@@ -267,7 +268,7 @@ void main(){
   };
 
   // The photograph fills the height; the rider sits a little right of centre
-  // (centred on narrow screens). Beyond its edges the land is mirrored.
+  // (centred on narrow screens). Beyond its edges the land carries on (see EXT_L, EXT_R).
   A.layout = function () {
     const W = this.w, H = this.h, tall = W < 700 || H > W;
     const ph = H * (tall ? 1 : 1.04), pw = ph * this.photoAR;
@@ -317,7 +318,7 @@ void main(){
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.enableVertexAttribArray(p.a);
     gl.vertexAttribPointer(p.a, 2, gl.FLOAT, false, 0, 0);
-    const units = [['uBH', this.bhTex], ['uPhoto', this.photoTex], ['uClean', this.cleanTex], ['uSky', this.skyTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex]];
+    const units = [['uBH', this.bhTex], ['uPhoto', this.photoTex], ['uSky', this.skyTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex]];
     units.forEach(function (u, i) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, u[1]);

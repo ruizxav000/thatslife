@@ -24,4 +24,4 @@ Everything personal is in `ME` at the top of `js/main.js`.
 - `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
 - `js/main.js`: content, the two views and the transition between them
 - `js/palettes.js`, `js/colormaps.js`: colour
-- `assets/scene.jpg`: the photograph; `assets/scene-clean.jpg`: the same without the rider, for the mirrored edges of wide screens; `assets/sky.png`: where the sky is
+- `assets/scene.jpg`: the photograph, with the land carried on past both edges for wide screens (no mirroring); `assets/sky.png`: where the sky is. Both are made by `tools/extend-scene.py` from the original photograph.

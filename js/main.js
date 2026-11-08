@@ -111,10 +111,7 @@
 
   const SCENE_SRC = 'assets/scene.jpg';
   const SKY_SRC = 'assets/sky.png';
-  const CLEAN_SRC = 'assets/scene-clean.jpg';
-  const scene = new Image(), skyMask = new Image(), clean = new Image();
-  clean.onload = function () { if (ascii) ascii.setClean(clean); };
-  clean.src = CLEAN_SRC;
+  const scene = new Image(), skyMask = new Image();
   scene.onload = function () { if (ascii) ascii.setPhoto(scene); };
   skyMask.onload = function () { if (ascii) ascii.setSky(skyMask); };
   scene.src = SCENE_SRC;
