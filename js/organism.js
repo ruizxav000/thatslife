@@ -40,9 +40,11 @@
     this.sy2 = new Float32Array(CAP);
     this.spar = new Int32Array(CAP);
     this.stip = new Int32Array(CAP);
+    this.scol = new Int32Array(CAP);   // which colony each thread belongs to
     this.sborn = new Int32Array(CAP);
     this.skind = new Uint8Array(CAP);
     this.pointer = null;
+    this.avoid = null;      // [x0, y0, x1, y1]: an area growth stays out of
     this.pointerFrame = -1e9;
     this.target = -1;
     this.queue = [];
@@ -101,9 +103,21 @@
     this.buckets = new Array(this.bw * this.bh);
     if (this.pal.bg === 'transparent') this.b.clearRect(0, 0, this.w, this.h);
     else { this.b.fillStyle = this.pal.bg; this.b.fillRect(0, 0, this.w, this.h); }
-    this.buildMask();
+    this.seeds = [];
+    this.flashes = [];
+    this.met = new Set();
+    this.colonies = 0;
+    this.feeding = false;
+    if (this.lines && this.lines.length) {
+      this.buildMask();
+      this.seedName();
+    } else {
+      // No name to grow: an open field for colonies.
+      this.nameBox = { x0: this.w / 2, x1: this.w / 2, y0: this.h / 2, y1: this.h / 2, size: 0 };
+      this.maskCanvas = null;
+      this.nameDone = true;
+    }
     this.placeSpores();
-    this.seedName();
   };
 
   // ---- The name as a growth medium -------------------------------------------
@@ -190,7 +204,7 @@
 
   P.placeSpores = function () {
     const portrait = this.h > this.w;
-    const layout = portrait ? this.sporeLayout.portrait : this.sporeLayout.landscape;
+    const layout = this.sporeLayout ? (portrait ? this.sporeLayout.portrait : this.sporeLayout.landscape) : [];
     const old = this.spores || [];
     this.spores = layout.map(function (p, i) {
       return {
@@ -230,7 +244,7 @@
       // Skip seeds that already have threads around them.
       if (this.grid[((p.y / CELL) | 0) * this.gw + ((p.x / CELL) | 0)]) { this.pending.splice(i, 1); continue; }
       for (let k = 0; k < 2; k++) {
-        this.tips.push({ x: p.x, y: p.y, a: Math.random() * TAU, id: this.nextId++, age: 0, last: -1, kind: 0, life: 1e9, tro: 0 });
+        this.tips.push({ x: p.x, y: p.y, a: Math.random() * TAU, id: this.nextId++, age: 0, last: -1, kind: 0, life: 1e9, tro: 0, col: 0 });
       }
       this.pending.splice(i, 1);
     }
@@ -241,7 +255,7 @@
     }
 
     this.att = this.attractor();
-    if (f > 50 && this.att && f % 5 === 0) this.reach(this.att);
+    if (f > 50 && this.att && f % (this.feeding ? 2 : 5) === 0) this.reach(this.att);
     if (this.nameDone && !this.att && f % 140 === 0) this.wander();
 
     const sub = this.nameDone ? 2 : 3;
@@ -269,6 +283,7 @@
     this.stip[i] = tp.id;
     this.sborn[i] = this.frame;
     this.skind[i] = tp.kind;
+    this.scol[i] = tp.col || 0;
     tp.last = i; tp.x = nx; tp.y = ny; tp.age++;
     this.coarse[((ny / COARSE) | 0) * this.cw + ((nx / COARSE) | 0)] = i + 1;
     const bi = ((ny / BUCK) | 0) * this.bw + ((nx / BUCK) | 0);
@@ -278,8 +293,11 @@
 
   P.grow = function () {
     const tips = this.tips, born = [], att = this.att;
-    let free = 0;
-    for (let i = 0; i < tips.length; i++) if (tips[i].kind === 1) free++;
+    let free = 0, colony = 0;
+    for (let i = 0; i < tips.length; i++) {
+      if (tips[i].kind === 1) free++;
+      else if (tips[i].kind === 2) colony++;
+    }
 
     for (let i = 0; i < tips.length; i++) {
       const tp = tips[i];
@@ -302,6 +320,9 @@
       }
       tp.a = a;
       if (nx < 1 || ny < 1 || nx >= this.w - 1 || ny >= this.h - 1 || this.nSeg >= CAP) { tp.dead = true; continue; }
+      // Leave the words readable: growth stops at the edge of the text.
+      const av = this.avoid;
+      if (!name && av && nx > av[0] && nx < av[2] && ny > av[1] && ny < av[3]) { tp.dead = true; continue; }
 
       const si = this.addSeg(tp, nx, ny);
       const ci = ((ny / CELL) | 0) * this.gw + ((nx / CELL) | 0);
@@ -310,6 +331,8 @@
         this.grid[ci] = si + 1;
       } else if (this.stip[owner - 1] !== tp.id && tp.age > 8) {
         tp.dead = true; // fused into the network
+        const other = this.scol[owner - 1];
+        if (tp.col && other && other !== tp.col) this.meet(si, owner - 1);
         continue;
       }
 
@@ -331,14 +354,16 @@
         }
       }
 
-      const p = name ? 0.05 : tp.tro > 0 ? 0.007 : 0.016;
-      const room = name ? tips.length + born.length < 1400 : free + born.length < 60;
+      const p = name ? 0.05 : tp.kind === 2 ? 0.02 : tp.tro > 0 ? 0.007 : 0.016;
+      const room = name ? tips.length + born.length < 1400
+        : tp.kind === 2 ? colony + born.length < (this.feeding ? 700 : 500)
+        : free + born.length < (this.feeding ? 160 : 60);
       if (room && Math.random() < p) {
         const side = Math.random() < 0.5 ? -1 : 1;
         const ba = 0.5 + Math.random() * 0.65;
         born.push({
-          x: nx, y: ny, a: a + side * ba, id: this.nextId++, age: 0, last: si, kind: tp.kind,
-          life: name ? 1e9 : Math.min(tp.life, 40 + Math.random() * 80),
+          x: nx, y: ny, a: a + side * ba, id: this.nextId++, age: 0, last: si, kind: tp.kind, col: tp.col,
+          life: name ? 1e9 : tp.kind === 2 ? tp.life * (0.7 + Math.random() * 0.3) : Math.min(tp.life, 40 + Math.random() * 80),
           tro: tp.tro * 0.25
         });
         tp.a -= side * ba * 0.2;
@@ -375,15 +400,15 @@
       if (this.tips[i].kind === 1) free++;
       if (this.tips[i].tro > 0.05) homing++;
     }
-    if (homing >= 6 || free > 80) return;
+    if (homing >= (this.feeding ? 16 : 6) || free > (this.feeding ? 240 : 80)) return;
     const s = this.nearestSeg(att.x, att.y);
     if (s < 0) return;
     const x = this.sx2[s], y = this.sy2[s];
     const d = Math.hypot(att.x - x, att.y - y);
     if (d < 18) return;
     this.tips.push({
-      x: x, y: y, a: Math.atan2(att.y - y, att.x - x) + gauss() * 0.35, id: this.nextId++, age: 0, last: s, kind: 1,
-      life: (d / 1.5) * 1.6 + 60, tro: 0.08 + Math.random() * 0.05
+      x: x, y: y, a: Math.atan2(att.y - y, att.x - x) + gauss() * 0.35, id: this.nextId++, age: 0, last: s, kind: 1, col: this.scol[s],
+      life: (d / 1.5) * 1.6 + 60, tro: (this.feeding ? 0.12 : 0.08) + Math.random() * 0.05
     });
   };
 
@@ -391,7 +416,7 @@
   P.wander = function () {
     if (!this.nSeg || this.nSeg > CAP * 0.85 || this.tips.length > 20) return;
     const s = (Math.random() * this.nSeg) | 0;
-    this.tips.push({ x: this.sx2[s], y: this.sy2[s], a: Math.random() * TAU, id: this.nextId++, age: 0, last: s, kind: 1, life: 50 + Math.random() * 90, tro: 0 });
+    this.tips.push({ x: this.sx2[s], y: this.sy2[s], a: Math.random() * TAU, id: this.nextId++, age: 0, last: s, kind: 1, col: this.scol[s], life: 50 + Math.random() * 90, tro: 0 });
   };
 
   // A few threads leave the letters once the name is grown.
@@ -401,7 +426,7 @@
     for (let k = 0; k < 7; k++) {
       const s = (Math.random() * this.nSeg) | 0;
       const x = this.sx2[s], y = this.sy2[s];
-      this.tips.push({ x: x, y: y, a: Math.atan2(y - cy, x - cx) + gauss() * 0.4, id: this.nextId++, age: 0, last: s, kind: 1, life: 90 + Math.random() * 120, tro: 0 });
+      this.tips.push({ x: x, y: y, a: Math.atan2(y - cy, x - cx) + gauss() * 0.4, id: this.nextId++, age: 0, last: s, kind: 1, col: this.scol[s], life: 90 + Math.random() * 120, tro: 0 });
     }
   };
 
@@ -412,8 +437,41 @@
     if (s < 0) return;
     this.pulses.push({ path: this.trace(s), t: 0, speed: 3.6, a: 1 });
     for (let k = 0; k < 4; k++) {
-      this.tips.push({ x: this.sx2[s], y: this.sy2[s], a: Math.random() * TAU, id: this.nextId++, age: 0, last: s, kind: 1, life: 40 + Math.random() * 60, tro: 0 });
+      this.tips.push({ x: this.sx2[s], y: this.sy2[s], a: Math.random() * TAU, id: this.nextId++, age: 0, last: s, kind: 1, col: this.scol[s], life: 40 + Math.random() * 60, tro: 0 });
     }
+  };
+
+  // Plant a spore: a new colony germinates and spreads out from it.
+  P.plant = function (x, y) {
+    const col = ++this.colonies;
+    this.seeds.push({ x: x, y: y, col: col, born: this.frame });
+    const n = 7, a0 = Math.random() * TAU;
+    for (let k = 0; k < n; k++) {
+      this.tips.push({ x: x, y: y, a: a0 + (k / n) * TAU + gauss() * 0.15, id: this.nextId++, age: 0, last: -1, kind: 2, col: col,
+        life: 520 + Math.random() * 420, tro: 0 });
+    }
+  };
+
+  // A click: on a thread, light runs home along it; on open ground, a spore is planted.
+  P.click = function (x, y) {
+    const s = this.nearestSeg(x, y);
+    if (s >= 0 && Math.hypot(this.sx2[s] - x, this.sy2[s] - y) < 26) { this.touch(x, y); return 'light'; }
+    this.plant(x, y);
+    return 'plant';
+  };
+
+  // Two colonies fuse: light leaves the meeting point for both spores.
+  P.meet = function (a, b) {
+    const ca = this.scol[a], cb = this.scol[b];
+    const key = Math.min(ca, cb) + ':' + Math.max(ca, cb);
+    const first = !this.met.has(key);
+    if (!first && Math.random() > 0.03) return;
+    if (this.pulses.length > 34) return;
+    this.met.add(key);
+    this.pulses.push({ path: this.trace(a), t: 0, speed: 3.2, a: 1 });
+    this.pulses.push({ path: this.trace(b), t: 0, speed: 3.2, a: 1 });
+    if (first) this.flashes.push({ x: this.sx2[a], y: this.sy2[a], f: this.frame });
+    if (this.opts.onMeet) this.opts.onMeet(ca, cb, first);
   };
 
   P.trace = function (i) {
@@ -472,7 +530,7 @@
       b.restore();
       this.drawn = this.nSeg;
     }
-    if (this.nameDone && this.nameFill < 1) {
+    if (this.nameDone && this.nameFill < 1 && this.maskCanvas) {
       this.nameFill += 1 / 60;
       b.save();
       b.globalAlpha = this.pal.bodyAlpha || 0.0009;
@@ -561,6 +619,38 @@
       o.beginPath(); o.arc(s.x, s.y, r, 0, TAU); o.fill();
       o.fillStyle = s.found ? rgba(pal.head, 0.95) : rgba(pal.spore, 0.35 + 0.3 * breath);
       o.beginPath(); o.arc(s.x, s.y, s.found ? 2.6 + s.bloom : 1.4, 0, TAU); o.fill();
+    }
+
+    // Planted spores, and the moment two colonies meet.
+    for (let k = 0; k < this.seeds.length; k++) {
+      const sd = this.seeds[k];
+      const age = f - sd.born, grow = Math.min(1, age / 40);
+      const breath = 0.5 + 0.5 * Math.sin(f * 0.04 + sd.col);
+      const g = o.createRadialGradient(sd.x, sd.y, 0, sd.x, sd.y, 16 * grow + 4);
+      g.addColorStop(0, rgba(pal.spore, 0.22 + 0.12 * breath));
+      g.addColorStop(1, rgba(pal.spore, 0));
+      o.fillStyle = g;
+      o.beginPath(); o.arc(sd.x, sd.y, 16 * grow + 4, 0, TAU); o.fill();
+      o.fillStyle = rgba(pal.head, 0.9);
+      o.beginPath(); o.arc(sd.x, sd.y, 2.2 * grow + 0.6, 0, TAU); o.fill();
+      if (age < 60) {
+        o.strokeStyle = rgba(pal.spore, 0.6 * (1 - age / 60));
+        o.lineWidth = 1;
+        o.beginPath(); o.arc(sd.x, sd.y, 6 + age * 0.9, 0, TAU); o.stroke();
+      }
+    }
+    for (let k = this.flashes.length - 1; k >= 0; k--) {
+      const fl = this.flashes[k], age = f - fl.f;
+      if (age > 70) { this.flashes.splice(k, 1); continue; }
+      const t = age / 70;
+      o.strokeStyle = rgba(pal.spore, 0.75 * (1 - t));
+      o.lineWidth = 1.5 * (1 - t) + 0.5;
+      o.beginPath(); o.arc(fl.x, fl.y, 4 + t * 46, 0, TAU); o.stroke();
+      const g = o.createRadialGradient(fl.x, fl.y, 0, fl.x, fl.y, 14);
+      g.addColorStop(0, rgba(pal.head, 0.8 * (1 - t)));
+      g.addColorStop(1, rgba(pal.spore, 0));
+      o.fillStyle = g;
+      o.beginPath(); o.arc(fl.x, fl.y, 14, 0, TAU); o.fill();
     }
 
     // The visitor carries light: threads near the cursor glow as it passes.

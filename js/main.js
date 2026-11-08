@@ -2,38 +2,21 @@
   'use strict';
 
   const ME = {
-    name: 'XAVIER RUIZ',
     role: 'Product Marketing @ ServiceNow',
     place: 'Boston, MA',
     links: [
       { label: 'LinkedIn', href: '#' },
       { label: 'Email', href: '#' }
     ],
+    // kind 'mycelium' opens the living network; anything else shows over Space Cowboy.
     projects: [
-      { title: 'Space Cowboy',  meta: 'ASCII, 2026',       summary: 'One or two sentences on what this was and why it mattered.' },
+      { title: 'Mycelium', meta: 'Interactive, 2026', kind: 'mycelium',
+        summary: 'A living network that grows the way fungi do: tips wander, branch and fuse when they meet. Click open ground to plant a spore. Hold to feed it. When two colonies touch, light runs home to both.' },
       { title: 'Project Two',   meta: 'Positioning, 2025', summary: 'One or two sentences on what this was and why it mattered.' },
       { title: 'Project Three', meta: 'Campaign, 2025',    summary: 'One or two sentences on what this was and why it mattered.' },
-      { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.' },
-      { title: 'Project Five',  meta: 'Research, 2024',    summary: 'One or two sentences on what this was and why it mattered.' }
+      { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.' }
     ]
   };
-
-  // Where each project waits in the dark (fractions of the screen).
-  const LAYOUT = {
-    landscape: [[0.13, 0.18], [0.5, 0.12], [0.86, 0.2], [0.8, 0.82], [0.22, 0.8]],
-    portrait:  [[0.2, 0.13], [0.78, 0.12], [0.16, 0.8], [0.82, 0.76], [0.5, 0.92]]
-  };
-
-  // Front page colour: one of the palettes in js/palettes.js.
-  const PALETTE = window.PALETTES[window.PALETTE_OVERRIDE || 'ink'];
-  (function applyPalette(p) {
-    const r = document.documentElement.style;
-    r.setProperty('--bg', p.bg);
-    r.setProperty('--fg', p.css.fg);
-    r.setProperty('--dim', p.css.dim);
-    r.setProperty('--gold', p.css.accent);
-    r.colorScheme = p.dark ? 'dark' : 'light';
-  })(PALETTE);
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = function (s) { return document.querySelector(s); };
@@ -41,65 +24,9 @@
 
   document.querySelectorAll('[data-role]').forEach(function (n) { n.textContent = ME.role; });
   document.querySelectorAll('[data-place]').forEach(function (n) { n.textContent = ME.place; });
-  document.querySelectorAll('[data-name]').forEach(function (n) { n.textContent = 'Xavier Ruiz'; });
 
   // ====================================================================================
-  // Front page: the network that grows the name.
-  // ====================================================================================
-
-  const role = $('#role');
-  const base = $('#base'), over = $('#over');
-  const org = new window.Organism(base, over, {
-    family: '"Unbounded", sans-serif',
-    palette: PALETTE,
-    weight: 900,
-    stretch: 'normal',
-    onNameDone: function () { role.classList.add('is-in'); },
-    onConnect: function (i) {
-      sporeEls[i].classList.add('is-found');
-      indexButtons[i].classList.add('is-found');
-    }
-  });
-
-  function nameLines() {
-    const words = ME.name.split(/\s+/);
-    return window.innerWidth < 700 && words.length > 1 ? words : [ME.name];
-  }
-
-  // Projects: invisible until the network reaches them.
-  const sporeWrap = $('#spores');
-  const sporeEls = ME.projects.map(function (p, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'spore';
-    b.setAttribute('aria-label', p.title);
-    b.innerHTML = '<span class="spore__label">' + p.title + '</span>';
-    b.addEventListener('mouseenter', function () { org.hover = i; });
-    b.addEventListener('mouseleave', function () { org.hover = -1; });
-    b.addEventListener('focus', function () { org.hover = i; });
-    b.addEventListener('blur', function () { org.hover = -1; });
-    b.addEventListener('click', function () {
-      if (org.spores[i].found) enter(i);
-      else { org.target = i; if (reduceMotion) { org.queue = [i]; org.settle(false); } }
-    });
-    sporeWrap.appendChild(b);
-    return b;
-  });
-
-  function layoutDom() {
-    const nb = org.nameBox;
-    role.style.top = (nb.y1 + Math.max(18, nb.size * 0.22)) + 'px';
-    org.spores.forEach(function (s, i) {
-      const el = sporeEls[i];
-      el.style.left = s.x + 'px';
-      el.style.top = s.y + 'px';
-      el.classList.toggle('spore--left', s.x > org.w * 0.6);
-      el.classList.toggle('is-found', s.found);
-    });
-  }
-
-  // ====================================================================================
-  // Project pages: the photograph redrawn in characters, a black hole where the moon was.
+  // Front page: Space Cowboy. The photograph redrawn in characters, under a black hole.
   // ====================================================================================
 
   let ascii = null;
@@ -108,7 +35,6 @@
   } catch (e) {
     ascii = null;
   }
-
   const SCENE_SRC = 'assets/scene.jpg';
   const SKY_SRC = 'assets/sky.png';
   const scene = new Image(), skyMask = new Image();
@@ -117,49 +43,82 @@
   scene.src = SCENE_SRC;
   skyMask.src = SKY_SRC;
 
-  // ---- Moving between the front page and a project ----------------------------------
+  // ====================================================================================
+  // Mycelium: the living network, on pale stone.
+  // ====================================================================================
 
-  const view = { project: -1, t: 0, from: 0, to: 0, start: 0, dur: 1, done: null };
-  const projectEl = $('#project');
+  const base = $('#base'), over = $('#over');
+  const org = new window.Organism(base, over, {
+    family: '"Unbounded", sans-serif', weight: 900, stretch: 'normal',
+    palette: window.PALETTES.ink
+  });
+
+  function freshField() {
+    org.setup([], null);
+    org.plant(org.w * (org.w < 700 ? 0.5 : 0.62), org.h * 0.56);
+    if (reduceMotion) { for (let i = 0; i < 500; i++) org.update(); org.render(); }
+  }
+
+  // ---- Which world is showing, and the turn between them --------------------------------
+
+  const view = { world: 'cowboy', project: -1, busy: false };
+  const turn = { start: 0, dur: 1, from: 1, to: 1, done: null };
   const snap = document.createElement('canvas');
+  const intro = $('#intro'), projectEl = $('#project');
 
   function ease(k) { return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
 
-  function animate(to, dur, done) {
-    view.from = view.t; view.to = to;
-    view.start = performance.now();
-    view.dur = reduceMotion ? 1 : dur;
-    view.done = done || null;
+  // ascii.t = 1 shows Space Cowboy; 0 shows a still of the network; between, cells scramble over.
+  function animateTurn(from, to, dur, done) {
+    turn.from = from; turn.to = to; turn.done = done;
+    turn.start = performance.now();
+    turn.dur = reduceMotion ? 1 : dur;
+    if (ascii) ascii.t = from;
+  }
+  function tickTurn(now) {
+    if (!turn.start) return;
+    const k = Math.min(1, (now - turn.start) / turn.dur);
+    if (ascii) ascii.t = turn.from + (turn.to - turn.from) * ease(k);
+    if (k >= 1) { turn.start = 0; const d = turn.done; turn.done = null; if (d) d(); }
   }
 
-  function tween(now) {
-    if (!view.start) return;
-    const k = Math.min(1, (now - view.start) / view.dur), e = ease(k);
-    view.t = view.from + (view.to - view.from) * e;
-    if (ascii) ascii.t = view.t;
-    if (k >= 1) {
-      view.start = 0;
-      const d = view.done;
-      view.done = null;
-      if (d) d();
-    }
-  }
-
-  // A still of the front page: the moment the page starts to turn.
-  function snapshotHome() {
-    snap.width = base.width;
-    snap.height = base.height;
+  function snapshotNet() {
+    snap.width = base.width; snap.height = base.height;
     const x = snap.getContext('2d');
     x.drawImage(base, 0, 0);
     x.drawImage(over, 0, 0);
     ascii.setHome(snap);
   }
 
-  function placeCalm() {
-    if (!ascii) return;
-    const r = $('#p-text').getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
-    ascii.calm = [(r.left - 30) / W, (r.top - 30) / H, (r.right + 30) / W, (r.bottom + 30) / H];
+  function toNet(done) {
+    freshField();
+    org.render();
+    view.world = 'net';
+    if (!ascii) { body.classList.add('in-net'); done(); return; }
+    snapshotNet();
+    body.classList.add('turning');
+    animateTurn(1, 0, 1500, function () {
+      body.classList.add('in-net');
+      body.classList.remove('turning');
+      done();
+    });
   }
+
+  function toCowboy(done) {
+    view.world = 'cowboy';
+    org.feeding = false;
+    if (!ascii) { body.classList.remove('in-net'); done(); return; }
+    snapshotNet();
+    ascii.t = 0;
+    body.classList.add('turning');
+    body.classList.remove('in-net');
+    animateTurn(0, 1, 1400, function () {
+      body.classList.remove('turning');
+      done();
+    });
+  }
+
+  // ---- Text --------------------------------------------------------------------------------
 
   const SCRAMBLE = '01<>[]{}()?!$&~^/\\|';
   function decode(el, text, delay) {
@@ -182,61 +141,104 @@
     })(performance.now());
   }
 
-  function fill(i, delay) {
+  function fill(i) {
     const p = ME.projects[i];
-    decode($('#p-meta'), p.meta, delay);
-    decode($('#p-title'), p.title, delay + 130);
-    decode($('#p-summary'), p.summary, delay + 400);
+    decode($('#p-meta'), p.meta, 0);
+    decode($('#p-title'), p.title, 130);
+    decode($('#p-summary'), p.summary, 400);
     const link = $('#p-link');
     if (p.link) { link.hidden = false; link.href = p.link; } else link.hidden = true;
+    $('#p-restart').hidden = p.kind !== 'mycelium';
   }
 
-  function enter(i) {
-    hideSheet(true);
-    const already = view.project >= 0;
+  // Dim the characters behind whichever text is showing.
+  function placeCalm() {
+    // Measure the finished text, not the part that has decoded so far.
+    const typing = [];
+    document.querySelectorAll('#p-text [data-text]').forEach(function (el) {
+      if (el.textContent !== el.dataset.text) { typing.push([el, el.textContent]); el.textContent = el.dataset.text; }
+    });
+    measureCalm();
+    typing.forEach(function (t) { t[0].textContent = t[1]; });
+  }
+  function measureCalm() {
+    const nodes = view.project >= 0 ? [$('#p-text')] : [intro.querySelector('.intro__name'), intro.querySelector('.intro__role')];
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    nodes.forEach(function (n) {
+      const q = n.getBoundingClientRect();
+      if (!q.width) return;
+      l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+    });
+    if (!isFinite(l)) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    org.avoid = view.world === 'net' && view.project >= 0 ? [l - 24, t - 24, r + 24, b + 24] : null;
+    if (ascii) ascii.calm = [(l - 30) / W, (t - 30) / H, (r + 30) / W, (b + 30) / H];
+  }
+
+  // ---- Opening and closing projects -------------------------------------------------------
+
+  function show(i) {
     view.project = i;
     projectEl.hidden = false;
     body.classList.add('is-project');
-    if (!ascii || already) { fill(i, already ? 0 : 0); requestAnimationFrame(placeCalm); return; }
-    snapshotHome();
-    ascii.t = 0;
-    body.classList.add('in-world');
-    fill(i, 700);
-    animate(1, 1700, function () { $('#p-back').focus({ preventScroll: true }); });
+    fill(i);
     requestAnimationFrame(placeCalm);
   }
 
+  function enter(i) {
+    if (view.busy) return;
+    hideSheet(true);
+    const p = ME.projects[i];
+    const wantNet = p.kind === 'mycelium';
+    if (wantNet && view.world !== 'net') {
+      view.busy = true;
+      body.classList.remove('is-project');
+      fill(i);
+      projectEl.hidden = false;
+      view.project = i;
+      view.world = 'net';
+      placeCalm();
+      toNet(function () { view.busy = false; show(i); $('#p-back').focus({ preventScroll: true }); });
+    } else if (!wantNet && view.world === 'net') {
+      view.busy = true;
+      body.classList.remove('is-project');
+      toCowboy(function () { view.busy = false; show(i); });
+    } else {
+      show(i);
+    }
+  }
+
   function leave() {
-    if (view.project < 0) return;
+    if (view.project < 0 || view.busy) return;
     body.classList.remove('is-project');
-    if (!ascii) { projectEl.hidden = true; view.project = -1; return; }
-    animate(0, 1300, function () {
+    const done = function () {
+      view.busy = false;
       projectEl.hidden = true;
       view.project = -1;
-      body.classList.remove('in-world');
-    });
+      requestAnimationFrame(placeCalm);
+    };
+    if (view.world === 'net') { view.busy = true; toCowboy(done); }
+    else setTimeout(done, 350);
   }
 
   $('#p-back').addEventListener('click', leave);
   $('#p-next').addEventListener('click', function () { enter((view.project + 1) % ME.projects.length); });
+  $('#p-restart').addEventListener('click', function () { freshField(); });
 
-  // ---- Work and contact ---------------------------------------------------------------
+  // ---- Projects and contact --------------------------------------------------------------
 
   const list = $('#index-list');
-  const indexButtons = ME.projects.map(function (p, i) {
+  ME.projects.forEach(function (p, i) {
     const li = document.createElement('li');
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = p.title;
-    b.addEventListener('click', function () {
-      if (!org.spores[i].found) org.target = i;
-      enter(i);
-    });
+    b.innerHTML = '<span class="t"></span><span class="k"></span>';
+    b.querySelector('.t').textContent = p.title;
+    b.querySelector('.k').textContent = p.meta;
+    b.addEventListener('click', function () { enter(i); });
     li.appendChild(b);
     list.appendChild(li);
-    return b;
   });
-
   $('#links').innerHTML = ME.links.map(function (l) {
     return '<li><a href="' + l.href + '" target="_blank" rel="noopener">' + l.label + '</a></li>';
   }).join('');
@@ -264,62 +266,77 @@
   $('#open-index').addEventListener('click', function () { showSheet('sheet-index'); });
   $('#open-contact').addEventListener('click', function () { showSheet('sheet-contact'); });
 
-  // ---- The visitor ----------------------------------------------------------------------
+  // ---- The visitor ----------------------------------------------------------------------------
 
-  const pointer = { x: -999, y: -999, on: 0, lx: 0, ly: 0, moved: 0 };
+  const pointer = { x: -999, y: -999, on: 0, lx: 0, ly: 0, down: 0, downAt: 0 };
   let touchTimer = 0;
+  const inNet = function () { return view.world === 'net' && !view.busy && !openSheet; };
+
   window.addEventListener('pointermove', function (e) {
-    pointer.x = e.clientX; pointer.y = e.clientY; pointer.on = 1; pointer.moved = performance.now();
-    if (!openSheet && view.project < 0) org.setPointer(e.clientX, e.clientY);
+    pointer.x = e.clientX; pointer.y = e.clientY; pointer.on = 1;
+    if (inNet()) org.setPointer(e.clientX, e.clientY);
   });
   document.documentElement.addEventListener('pointerleave', function () { pointer.on = 0; });
   window.addEventListener('pointerdown', function (e) {
-    pointer.x = e.clientX; pointer.y = e.clientY; pointer.on = 1; pointer.moved = performance.now();
+    pointer.x = e.clientX; pointer.y = e.clientY; pointer.on = 1;
     if (e.pointerType !== 'mouse') {
       clearTimeout(touchTimer);
       touchTimer = setTimeout(function () { pointer.on = 0; }, 1400);
     }
-    if (openSheet || view.project >= 0 || e.target.closest('button, a')) return;
+    if (!inNet() || e.target.closest('button, a, .project__text')) return;
+    pointer.down = 1; pointer.downAt = performance.now();
     org.setPointer(e.clientX, e.clientY);
-    org.touch(e.clientX, e.clientY);
   });
+  window.addEventListener('pointerup', function (e) {
+    if (!pointer.down) return;
+    pointer.down = 0;
+    const held = performance.now() - pointer.downAt;
+    org.feeding = false;
+    // A tap plants or sends light; a hold has already fed the network.
+    if (held < 260 && inNet()) {
+      org.click(e.clientX, e.clientY);
+      if (reduceMotion) { for (let i = 0; i < 400; i++) org.update(); org.render(); }
+    }
+  });
+  window.addEventListener('pointercancel', function () { pointer.down = 0; org.feeding = false; });
 
-  // ---- Loop -------------------------------------------------------------------------------
+  // ---- Loop ---------------------------------------------------------------------------------
 
   let lens = 0;
   const drift = [0, 0];
   function loop(now) {
-    tween(now);
-    const inWorld = body.classList.contains('in-world');
-    // The front page rests while a project or a sheet covers it.
-    if (!inWorld && !reduceMotion && !document.hidden && !openSheet) {
-      org.update();
-      org.render();
-    }
-    if (inWorld && ascii && !document.hidden) {
-      lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
-      const W = window.innerWidth, H = window.innerHeight;
-      pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
-      pointer.ly += ((pointer.on ? (0.5 - pointer.y / H) * 0.045 : 0) - pointer.ly) * 0.04;
-      ascii.look = [pointer.lx, pointer.ly];
-      drift[0] += ((pointer.on ? pointer.x / W - 0.5 : 0) - drift[0]) * 0.06;
-      drift[1] += ((pointer.on ? pointer.y / H - 0.5 : 0) - drift[1]) * 0.06;
-      ascii.drift = drift;
-      ascii.mouse = [pointer.x, pointer.y, lens > 0.5 ? 1 : 0];
-      ascii.draw(reduceMotion ? 3 : now / 1000);
+    tickTurn(now);
+    if (!document.hidden) {
+      if (view.world === 'net' && !view.busy && !openSheet && !reduceMotion) {
+        if (pointer.down && now - pointer.downAt > 260) {
+          org.feeding = true;
+          org.setPointer(pointer.x, pointer.y);
+        }
+        org.update();
+        org.render();
+      }
+      const showAscii = ascii && (view.world === 'cowboy' || turn.start);
+      if (showAscii) {
+        lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
+        const W = window.innerWidth, H = window.innerHeight;
+        pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
+        pointer.ly += ((pointer.on ? (0.5 - pointer.y / H) * 0.045 : 0) - pointer.ly) * 0.04;
+        drift[0] += ((pointer.on ? pointer.x / W - 0.5 : 0) - drift[0]) * 0.06;
+        drift[1] += ((pointer.on ? pointer.y / H - 0.5 : 0) - drift[1]) * 0.06;
+        ascii.look = [pointer.lx, pointer.ly];
+        ascii.drift = drift;
+        ascii.mouse = [pointer.x, pointer.y, lens > 0.5 ? 1 : 0];
+        ascii.draw(reduceMotion ? 3 : now / 1000);
+      }
     }
     requestAnimationFrame(loop);
   }
 
   function start() {
-    org.setup(nameLines(), LAYOUT);
-    layoutDom();
-    if (ascii) ascii.resize(window.innerWidth, window.innerHeight);
-    if (view.project >= 0) placeCalm();
-    if (reduceMotion) {
-      org.settle(false);
-      role.classList.add('is-in');
-    }
+    if (ascii) { ascii.resize(window.innerWidth, window.innerHeight); ascii.t = 1; }
+    if (view.world === 'net') freshField();
+    if (reduceMotion && view.world === 'net') { for (let i = 0; i < 600; i++) org.update(); org.render(); }
+    requestAnimationFrame(placeCalm);
   }
 
   let lastW = 0, lastH = 0, rt = 0;
@@ -329,22 +346,22 @@
       if (Math.abs(window.innerWidth - lastW) < 40 && Math.abs(window.innerHeight - lastH) < 120) return;
       lastW = window.innerWidth; lastH = window.innerHeight;
       start();
-      if (view.project >= 0 && ascii) snapshotHome();
     }, 250);
   });
 
-  // Wait for both typefaces: the name grows in Unbounded, the characters are Martian Mono.
+  // Wait for both typefaces before drawing.
   let started = false;
   function go() {
     if (started) return;
     started = true;
     lastW = window.innerWidth; lastH = window.innerHeight;
+    org.setup([], null);
     start();
     requestAnimationFrame(loop);
   }
   if (document.fonts && document.fonts.load) {
     Promise.all([
-      document.fonts.load('900 100px "Unbounded"'),
+      document.fonts.load('700 100px "Unbounded"'),
       document.fonts.load('500 20px "Martian Mono"')
     ]).then(go, go);
     setTimeout(go, 3000);

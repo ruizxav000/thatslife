@@ -5,26 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Xavier Ruiz</title>
   <meta name="description" content="Xavier Ruiz, Product Marketing @ ServiceNow. Boston, MA.">
-  <meta name="theme-color" content="#e8e9e5">
+  <meta name="theme-color" content="#000000">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&family=Martian+Mono:wght@400..500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Front page: the network that grows the name. -->
+  <!-- Front page: Space Cowboy, drawn in characters. -->
+  <canvas id="ascii" aria-hidden="true"></canvas>
+  <!-- Mycelium: a living network. -->
   <canvas id="base" aria-hidden="true"></canvas>
   <canvas id="over" aria-hidden="true"></canvas>
 
-  <!-- Project pages: a world drawn in characters. -->
-  <canvas id="ascii" aria-hidden="true"></canvas>
-
-  <h1 class="sr-only"><span data-name></span>, <span data-role></span></h1>
-  <p class="role home-only" id="role" aria-hidden="true" data-role></p>
-  <div class="spores home-only" id="spores"></div>
+  <header class="intro" id="intro">
+    <h1 class="intro__name">Xavier Ruiz</h1>
+    <p class="intro__role" data-role></p>
+  </header>
 
   <p class="corner corner--tl" data-place></p>
-  <button class="corner corner--bl" id="open-index" type="button">Work</button>
+  <button class="corner corner--bl" id="open-index" type="button">Projects</button>
   <button class="corner corner--br" id="open-contact" type="button">Contact</button>
 
   <article class="project" id="project" aria-labelledby="p-title" hidden>
@@ -35,12 +35,13 @@
       <p class="project__summary" id="p-summary"></p>
       <div class="project__actions">
         <a class="project__link" id="p-link" href="#" target="_blank" rel="noopener">Open</a>
+        <button class="project__restart" id="p-restart" type="button">Start over</button>
         <button class="project__next" id="p-next" type="button">Next</button>
       </div>
     </div>
   </article>
 
-  <section class="sheet" id="sheet-index" aria-label="Work" hidden>
+  <section class="sheet" id="sheet-index" aria-label="Projects" hidden>
     <button class="close" type="button" data-close>Close</button>
     <ol class="index" id="index-list"></ol>
   </section>

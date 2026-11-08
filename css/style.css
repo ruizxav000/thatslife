@@ -1,12 +1,23 @@
+/* Two worlds.
+   Space Cowboy (front page): characters on black, sky blue from the photograph.
+   Mycelium (a project): graphite on pale stone, blue for anything alive. */
 :root {
+  --bg: #000000;
+  --fg: #eef2f7;
+  --dim: #8b95a5;
+  --gold: #6fc0ff;
+  --faint: color-mix(in srgb, var(--fg) 14%, transparent);
+  --display: "Unbounded", system-ui, sans-serif;
+  --font: "Unbounded", system-ui, sans-serif;
+  --mono: "Martian Mono", ui-monospace, monospace;
+  --edge: max(18px, env(safe-area-inset-left, 0px));
+  color-scheme: dark;
+}
+body.in-net {
   --bg: #e8e9e5;
   --fg: #141418;
   --dim: #6a6b72;
-  --faint: color-mix(in srgb, var(--fg) 12%, transparent);
   --gold: #1440ff;
-  --display: "Unbounded", system-ui, sans-serif;
-  --font: "Unbounded", system-ui, sans-serif;
-  --edge: max(18px, env(safe-area-inset-left));
   color-scheme: light;
 }
 
@@ -17,42 +28,55 @@ body {
   font: 300 15px/1.5 var(--font);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  cursor: none;
+  cursor: crosshair;
+  transition: color 0.6s ease;
 }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; }
 :focus-visible { outline: 1px solid var(--gold); outline-offset: 4px; }
 
-.sr-only {
-  position: absolute; width: 1px; height: 1px; overflow: hidden;
-  clip: rect(0 0 0 0); white-space: nowrap;
-}
+#ascii, #base, #over { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#ascii, #over { pointer-events: none; }
+#base, #over { visibility: hidden; }
+body.in-net #base, body.in-net #over { visibility: visible; }
+body.in-net #ascii { visibility: hidden; }
 
-#base, #over, #ascii { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-#over, #ascii { pointer-events: none; }
-
-/* Project pages: a different world, drawn in characters on black. */
-#ascii { visibility: hidden; }
-.in-world #ascii { visibility: visible; }
-body.is-project {
-  --bg: #000000; --fg: #eef2f7; --dim: #8b95a5; --gold: #6fc0ff;
-  --mono: "Martian Mono", ui-monospace, monospace;
-  color-scheme: dark; cursor: crosshair;
+/* Text blocks sit in the sky, top left. */
+.intro, .project {
+  position: fixed; inset: 0; z-index: 4; pointer-events: none;
+  padding: max(64px, 8vh) var(--edge) 80px;
+  display: grid; align-content: start;
+  transition: opacity 0.35s ease;
 }
-.home-only { transition: opacity 0.5s ease; }
-.is-project .home-only { opacity: 0 !important; pointer-events: none !important; }
-.is-project .home-only * { pointer-events: none !important; }
-.corner { transition: color 0.8s ease; }
-
-/* Job title under the grown name */
-.role {
-  position: fixed; left: 0; right: 0; text-align: center;
-  font-size: clamp(13px, 1.1vw, 16px); font-weight: 300;
-  letter-spacing: 0.03em; color: var(--dim);
-  opacity: 0; transition: opacity 2.4s ease;
-  pointer-events: none;
+.intro { gap: 12px; justify-items: start; }
+.intro__name {
+  font-family: var(--display); font-size: clamp(34px, 4.6vw, 72px); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 0.95;
 }
-.role.is-in { opacity: 1; }
+.intro__role { font-size: clamp(13px, 1.1vw, 16px); letter-spacing: 0.02em; color: var(--dim); }
+body.is-project .intro, body.turning .intro { opacity: 0; }
+
+.project[hidden] { display: none; }
+body:not(.is-project) .project, body.turning .project { opacity: 0; }
+.project__back {
+  position: fixed; top: max(16px, env(safe-area-inset-top, 0px)); right: max(18px, env(safe-area-inset-right, 0px));
+  font-size: 12px; letter-spacing: 0.02em; color: var(--dim); padding: 6px 0; pointer-events: auto;
+}
+.project__back:hover { color: var(--fg); }
+.project__text { width: min(34vw, 460px); display: grid; gap: 14px; pointer-events: auto; }
+.project h2 {
+  font-family: var(--display); font-size: clamp(28px, 3.4vw, 52px); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 0.95; text-wrap: balance;
+}
+.project__meta { font: 400 12px/1.4 var(--mono); color: var(--gold); letter-spacing: 0.02em; }
+.project__summary { font-size: clamp(13px, 1vw, 15px); line-height: 1.55; color: var(--fg); max-width: 44ch; }
+.project__actions { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 13px; }
+.project__link, .project__next, .project__restart { color: var(--dim); text-decoration: none; padding: 6px 0; }
+.project__link:hover, .project__next:hover, .project__restart:hover { color: var(--gold); }
+.project__link[hidden], .project__restart[hidden] { display: none; }
+@media (max-width: 700px), (orientation: portrait) {
+  .project__text { width: 100%; }
+}
 
 /* Corners: the only fixed text */
 .corner {
@@ -60,51 +84,36 @@ body.is-project {
   font-size: 12px; letter-spacing: 0.02em; color: var(--dim);
   padding: 6px 0; transition: color 0.3s;
 }
-.corner--tl { top: max(16px, env(safe-area-inset-top)); left: var(--edge); display: flex; gap: 14px; }
-.corner--bl { bottom: max(16px, env(safe-area-inset-bottom)); left: var(--edge); }
-.corner--br { bottom: max(16px, env(safe-area-inset-bottom)); right: max(18px, env(safe-area-inset-right)); }
+.corner--tl { top: max(16px, env(safe-area-inset-top, 0px)); left: var(--edge); }
+.corner--bl { bottom: max(16px, env(safe-area-inset-bottom, 0px)); left: var(--edge); }
+.corner--br { bottom: max(16px, env(safe-area-inset-bottom, 0px)); right: max(18px, env(safe-area-inset-right, 0px)); }
 button.corner:hover { color: var(--fg); }
-
-/* Project spores: invisible hit areas until found, then a quiet label */
-.spores { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
-.spore {
-  position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px;
-  border-radius: 50%; pointer-events: auto; cursor: pointer;
-}
-.spore__label {
-  position: absolute; top: 50%; left: 46px; transform: translateY(-50%);
-  white-space: nowrap; text-align: left;
-  font-size: 13px; letter-spacing: 0.02em;
-  opacity: 0; transition: opacity 1.6s ease, color 0.3s;
-  pointer-events: none;
-}
-.spore--left .spore__label { left: auto; right: 46px; text-align: right; }
-.spore.is-found .spore__label { opacity: 1; }
-.spore:hover .spore__label, .spore:focus-visible .spore__label { color: var(--gold); }
 
 /* Sheets */
 .sheet {
   position: fixed; inset: 0; z-index: 10; overflow-y: auto;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
   padding: clamp(72px, 12vh, 140px) var(--edge) 80px;
   cursor: auto;
-  animation: sheet-in 0.5s ease both;
+  animation: sheet-in 0.4s ease both;
 }
 .sheet[hidden] { display: none; }
 @keyframes sheet-in { from { opacity: 0; } to { opacity: 1; } }
 .close {
-  position: fixed; top: max(16px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right));
-  font-size: 13px; color: var(--dim); padding: 6px 0; z-index: 2;
+  position: fixed; top: max(16px, env(safe-area-inset-top, 0px)); right: max(18px, env(safe-area-inset-right, 0px));
+  font-size: 12px; color: var(--dim); padding: 6px 0; z-index: 2;
 }
 .close:hover { color: var(--fg); }
 
 .index { list-style: none; max-width: 1100px; margin: 0 auto; }
 .index button {
-  width: 100%; text-align: left; padding: clamp(14px, 2.4vh, 22px) 0; border-top: 1px solid var(--faint);
-  font-family: var(--display); font-size: clamp(28px, 4.6vw, 64px); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em;
+  width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
+  text-align: left; padding: clamp(14px, 2.4vh, 22px) 0; border-top: 1px solid var(--faint);
   color: var(--fg); transition: color 0.3s;
 }
+.index .t { font-family: var(--display); font-size: clamp(28px, 4.6vw, 64px); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; }
+.index .k { font: 400 12px/1.4 var(--mono); color: var(--dim); white-space: nowrap; }
 .index li:last-child button { border-bottom: 1px solid var(--faint); }
 .index button:hover, .index button:focus-visible { color: var(--gold); }
 
@@ -118,36 +127,7 @@ button.corner:hover { color: var(--fg); }
 
 .noscript { position: fixed; inset: 0; display: grid; place-items: center; font-size: 24px; }
 
-/* The project page */
-.project {
-  position: fixed; inset: 0; z-index: 4; pointer-events: none;
-  padding: max(64px, 8vh) var(--edge) 80px;
-  display: grid; align-content: start;
-}
-.project[hidden] { display: none; }
-.project { transition: opacity 0.35s ease; }
-body:not(.is-project) .project { opacity: 0; }
-.project__back {
-  position: fixed; top: max(16px, env(safe-area-inset-top, 0px)); right: max(18px, env(safe-area-inset-right, 0px));
-  font-size: 12px; letter-spacing: 0.02em; color: var(--dim); padding: 6px 0; pointer-events: auto;
-}
-.project__back:hover { color: var(--fg); }
-.project__text { width: min(34vw, 460px); display: grid; gap: 14px; pointer-events: auto; }
-.project h2 {
-  font-family: var(--display); font-size: clamp(28px, 3.4vw, 52px); font-weight: 700;
-  letter-spacing: -0.035em; line-height: 0.95; text-wrap: balance;
-}
-.project__meta { font: 400 12px/1.4 var(--mono); color: var(--gold); letter-spacing: 0.02em; }
-.project__summary { font-size: clamp(13px, 1vw, 15px); line-height: 1.55; color: var(--fg); max-width: 44ch; }
-.project__actions { display: flex; gap: 28px; font-size: 13px; }
-.project__link, .project__next { color: var(--dim); text-decoration: none; padding: 6px 0; }
-.project__link:hover, .project__next:hover { color: var(--gold); }
-.project__link[hidden] { display: none; }
-@media (max-width: 700px), (orientation: portrait) {
-  .project__text { width: 100%; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sheet { animation: none; }
-  .role, .spore__label, .home-only { transition: none; }
+  .intro, .project, body { transition: none; }
 }

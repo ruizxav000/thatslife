@@ -2,17 +2,14 @@
 
 Portfolio v2 for Xavier Ruiz.
 
-**Front page.** A network grows the name inside its own letterforms, reaches toward the cursor, and carries light back home. Projects are faint points; click one and the network grows to it.
+**Front page: Space Cowboy.** A photograph of a rider crossing snow, redrawn live in characters: ink on paper below the ridge, edges drawn as `- | / \`, and a sky that is a ray-traced black hole seen from close by. The name and job title sit in the sky. The cursor is a lens (finer characters, magnification) and the land drifts against the black hole as it moves.
 
-**Project pages.** Clicking a found project turns the whole page into that project's own world. The front page breaks apart cell by cell into characters and becomes:
+**Projects.** Opening a project with its own world turns the page cell by cell into it; Back turns it back.
 
-- the photograph of a rider crossing snow, redrawn in characters: ink on paper below the ridge, with edges (ridgelines, the horse, the tracks) drawn as `- | / \`;
-- a sky that is a ray-traced black hole, seen from close by: its shadow and lensed disk fill everything above the ridge;
-- a lens around the cursor (finer characters, magnification) and the land drifting against the sky as the cursor moves.
+- **Mycelium**: a living network on pale stone. Tips wander, branch and fuse when they meet. Click open ground to plant a spore and a colony germinates; click a thread to send light home along it; hold to feed, and growth surges toward the cursor. When two colonies meet, light leaves the meeting point for both spores. Start over clears the field.
+- Other projects (placeholders for now) show their text over Space Cowboy.
 
-Back turns the page into the front page again.
-
-Open `index.html` in a browser. Project pages need WebGL.
+Open `index.html` in a browser. Space Cowboy needs WebGL.
 
 ## Make it yours
 
@@ -20,8 +17,8 @@ Everything personal is in `ME` at the top of `js/main.js`.
 
 ## Files
 
-- `js/organism.js`: the growing network (front page)
-- `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
-- `js/main.js`: content, the two views and the transition between them
+- `js/ascii.js`: black hole ray tracer and the character renderer (Space Cowboy)
+- `js/organism.js`: the growing network (Mycelium)
+- `js/main.js`: content, the two worlds and the turn between them
 - `js/palettes.js`, `js/colormaps.js`: colour
-- `assets/scene.jpg`: the photograph, with the land carried on past both edges for wide screens (no mirroring); `assets/sky.png`: where the sky is. Both are made by `tools/extend-scene.py` from the original photograph.
+- `assets/scene.jpg`: the photograph, with the land carried on past both edges for wide screens; `assets/sky.png`: where the sky is. Both are made by `tools/extend-scene.py` from the original photograph.
