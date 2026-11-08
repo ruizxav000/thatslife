@@ -1,8 +1,9 @@
 from PIL import Image, ImageFilter
 import numpy as np
-SP='/tmp/claude-0/-home-user-thatslife/49ac9591-e3da-555c-99f7-a09681057508/scratchpad'
+# Run from the repository root. reference.jpg is the original photograph (not committed).
+SP='.'
 rng = np.random.default_rng(11)
-src = Image.open('/root/.claude/uploads/49ac9591-e3da-555c-99f7-a09681057508/67e92dc3-image.jpg').convert('RGB')
+src = Image.open('reference.jpg').convert('RGB')
 W = 1000; H = round(src.height * W / src.width)
 photo = np.asarray(src.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.9))).astype(float)
 # The photograph's own sky line (recomputed from colour, as before).
