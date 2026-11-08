@@ -79,7 +79,8 @@ void main(){
 }`;
 
   const ASCII = `precision highp float;
-uniform sampler2D uBH,uOrg,uImg,uAtlas;
+uniform sampler2D uBH,uOrg,uImg,uAtlas,uRider;
+uniform vec4 uRiderRect;uniform float uRiderFlip;
 uniform vec2 uRes,uCell;uniform float uGlyphs,uNoise0,uTime,uT,uImgOn,uOrgOn,uExposure;
 uniform vec3 uMouse;uniform float uLensR;
 uniform vec4 uImgRect,uCalm;uniform vec3 uAccent;
@@ -119,6 +120,21 @@ void main(){
       hi=abs(a)<22.5?5.:(abs(a)>67.5?12.:(a<0.?13.:14.));}
     else hi=rampIdx(0.35+cov*0.9);
     hc=oc*mix(0.75,1.25,clamp(cov*2.,0.,1.));
+  }
+
+  // The rider, over everything at home.
+  vec2 ru=(uv-uRiderRect.xy)/(uRiderRect.zw-uRiderRect.xy);
+  if(all(greaterThanEqual(ru,vec2(0.)))&&all(lessThanEqual(ru,vec2(1.)))){
+    if(uRiderFlip>0.5)ru.x=1.-ru.x;
+    vec4 rs=texture2D(uRider,ru);
+    if(rs.a>0.45){
+      vec2 rd=(uCell*1.2/uRes)/(uRiderRect.zw-uRiderRect.xy);
+      float l0=lum(rs.rgb);
+      float lb=0.25*(lum(texture2D(uRider,ru+vec2(rd.x,0.)).rgb)+lum(texture2D(uRider,ru-vec2(rd.x,0.)).rgb)
+                    +lum(texture2D(uRider,ru+vec2(0.,rd.y)).rgb)+lum(texture2D(uRider,ru-vec2(0.,rd.y)).rgb));
+      hi=rampIdx(clamp(0.16+l0*0.78+(l0-lb)*2.2,0.08,1.));
+      hc=rs.rgb*1.25+0.05;
+    }
   }
 
   // Project: an image in its frame, the black hole elsewhere.
@@ -161,6 +177,9 @@ void main(){
     this.orgTex = this.texture(gl.LINEAR);
     this.imgTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
+    this.riderTex = this.texture(gl.LINEAR);
+    this.riderRect = [-1, -1, -1, -1];
+    this.riderFlip = 0;
     this.feed = document.createElement('canvas');
     this.fctx = this.feed.getContext('2d');
     this.mouse = [0, 0, 0];
@@ -255,6 +274,12 @@ void main(){
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
   };
 
+  A.setRider = function (img) {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.riderTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  };
+
   A.camera = function () {
     const c = this.cam, inc = c.incl * Math.PI / 180;
     const pos = [c.dist * Math.cos(inc) * Math.cos(c.phi), c.dist * Math.sin(inc), c.dist * Math.cos(inc) * Math.sin(c.phi)];
@@ -309,7 +334,7 @@ void main(){
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.enableVertexAttribArray(p.a);
     gl.vertexAttribPointer(p.a, 2, gl.FLOAT, false, 0, 0);
-    const units = [['uBH', this.bhTex], ['uOrg', this.orgTex], ['uImg', this.imgTex], ['uAtlas', this.atlasTex]];
+    const units = [['uBH', this.bhTex], ['uOrg', this.orgTex], ['uImg', this.imgTex], ['uAtlas', this.atlasTex], ['uRider', this.riderTex]];
     units.forEach(function (u, i) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, u[1]);
@@ -330,6 +355,8 @@ void main(){
     gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 130) * d);
     gl.uniform4fv(p.u.uImgRect, this.imgRect);
     gl.uniform4fv(p.u.uCalm, this.calm);
+    gl.uniform4fv(p.u.uRiderRect, this.riderRect);
+    gl.uniform1f(p.u.uRiderFlip, this.riderFlip);
     gl.uniform3fv(p.u.uAccent, this.opts.accent);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
