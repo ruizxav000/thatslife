@@ -2,22 +2,26 @@
 
 Portfolio v2 for Xavier Ruiz.
 
-Everything on screen is drawn in characters, live:
+**Front page.** A network grows the name inside its own letterforms, reaches toward the cursor, and carries light back home. Projects are faint points; click one and the network grows to it.
 
-- The background is the ray-traced black hole from Twin Paradox, rendered at one ray per character.
-- The name is grown by a branching, fusing network; each thread becomes `- | / \` by the direction it runs.
-- Around the cursor the characters get finer and the view is magnified.
-- Clicking a project doesn't open a page: every character scrambles and resolves into the project. Twin Paradox flies the camera in close; image projects draw their image in characters.
+**Project pages.** Clicking a found project turns the whole page into that project's own world. The front page breaks apart cell by cell into characters and becomes:
 
-Open `index.html` in a browser (WebGL required for the ASCII view; without it the network is shown as drawn).
+- the ray-traced black hole from Twin Paradox, drawn in ASCII, with each project seen from its own camera position;
+- the rider from the photograph, galloping toward the cursor and leaving tracks in the snow;
+- a lens around the cursor: finer characters and magnification.
+
+Back turns the page into the front page again.
+
+Open `index.html` in a browser. Project pages need WebGL.
 
 ## Make it yours
 
-Everything personal is in `ME` at the top of `js/main.js`. A project with `field: 'image'` currently uses `assets/ride.jpg`.
+Everything personal is in `ME` at the top of `js/main.js`, including each project's camera `view`.
 
 ## Files
 
-- `js/ascii.js`: black hole ray tracer and the character renderer (WebGL)
-- `js/organism.js`: the growing network
-- `js/main.js`: content, views, transitions, interaction
+- `js/organism.js`: the growing network (front page)
+- `js/ascii.js`: black hole ray tracer and the character renderer (project pages)
+- `js/main.js`: content, the two views and the transition between them
 - `js/palettes.js`, `js/colormaps.js`: colour
+- `assets/rider.png`: the rider, cut out of the photograph

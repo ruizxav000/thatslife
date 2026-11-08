@@ -9,26 +9,39 @@
       { label: 'LinkedIn', href: '#' },
       { label: 'Email', href: '#' }
     ],
-    // field: 'blackhole' flies into the black hole; 'image' draws the project image in characters.
+    // Each project is its own world. `view` is where the camera sits around the black hole.
     projects: [
-      { title: 'Twin Paradox', meta: 'Experience, 2026', field: 'blackhole', link: 'https://claude.ai/artifact/N3rya4kPj5kA7Ky8Pkypf4',
-        summary: 'A first-person journey to a black hole, ray traced live in the browser. Hold at the edge of the horizon and seven years pass at home for every hour on board.' },
-      { title: 'Project Two',   meta: 'Positioning, 2025', field: 'image', summary: 'One or two sentences on what this was and why it mattered.' },
-      { title: 'Project Three', meta: 'Campaign, 2025',    field: 'image', summary: 'One or two sentences on what this was and why it mattered.' },
-      { title: 'Project Four',  meta: 'Story, 2024',       field: 'image', summary: 'One or two sentences on what this was and why it mattered.' },
-      { title: 'Project Five',  meta: 'Research, 2024',    field: 'image', summary: 'One or two sentences on what this was and why it mattered.' }
+      { title: 'Twin Paradox', meta: 'Experience, 2026', link: 'https://claude.ai/artifact/N3rya4kPj5kA7Ky8Pkypf4',
+        summary: 'A first-person journey to a black hole, ray traced live in the browser. Hold at the edge of the horizon and seven years pass at home for every hour on board.',
+        view: { dist: 9.5, incl: 2.4, phi: 0.85, lean: -0.02 } },
+      { title: 'Project Two',   meta: 'Positioning, 2025', summary: 'One or two sentences on what this was and why it mattered.',
+        view: { dist: 17, incl: 6, phi: -0.5, lean: 0.05 } },
+      { title: 'Project Three', meta: 'Campaign, 2025',    summary: 'One or two sentences on what this was and why it mattered.',
+        view: { dist: 14, incl: 11, phi: 1.6, lean: 0.04 } },
+      { title: 'Project Four',  meta: 'Story, 2024',       summary: 'One or two sentences on what this was and why it mattered.',
+        view: { dist: 21, incl: 3.5, phi: 2.6, lean: 0.06 } },
+      { title: 'Project Five',  meta: 'Research, 2024',    summary: 'One or two sentences on what this was and why it mattered.',
+        view: { dist: 12, incl: 15, phi: -1.4, lean: 0.02 } }
     ]
   };
 
+  // Where each project waits in the dark (fractions of the screen).
   const LAYOUT = {
-    landscape: [[0.13, 0.18], [0.5, 0.1], [0.86, 0.2], [0.82, 0.72], [0.18, 0.7]],
-    portrait:  [[0.2, 0.13], [0.78, 0.12], [0.16, 0.7], [0.84, 0.66], [0.5, 0.76]]
+    landscape: [[0.13, 0.18], [0.5, 0.12], [0.86, 0.2], [0.8, 0.82], [0.22, 0.8]],
+    portrait:  [[0.2, 0.13], [0.78, 0.12], [0.16, 0.8], [0.82, 0.76], [0.5, 0.92]]
   };
 
-  const PHOTO_SRC = 'assets/ride.jpg';
-  const PHOTO_AR = 360 / 487;
+  // Front page colour: one of the palettes in js/palettes.js.
+  const PALETTE = window.PALETTES[window.PALETTE_OVERRIDE || 'ink'];
+  (function applyPalette(p) {
+    const r = document.documentElement.style;
+    r.setProperty('--bg', p.bg);
+    r.setProperty('--fg', p.css.fg);
+    r.setProperty('--dim', p.css.dim);
+    r.setProperty('--gold', p.css.accent);
+    r.colorScheme = p.dark ? 'dark' : 'light';
+  })(PALETTE);
 
-  const PALETTE = window.PALETTES.ascii;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = function (s) { return document.querySelector(s); };
   const body = document.body;
@@ -37,35 +50,80 @@
   document.querySelectorAll('[data-place]').forEach(function (n) { n.textContent = ME.place; });
   document.querySelectorAll('[data-name]').forEach(function (n) { n.textContent = 'Xavier Ruiz'; });
 
-  // ---- The network that grows the name ----------------------------------------
+  // ====================================================================================
+  // Front page: the network that grows the name.
+  // ====================================================================================
+
   const role = $('#role');
   const base = $('#base'), over = $('#over');
   const org = new window.Organism(base, over, {
-    family: '"Unbounded", sans-serif', weight: 900, stretch: 'normal',
-    palette: PALETTE, maxDpr: 1,
+    family: '"Unbounded", sans-serif',
+    palette: PALETTE,
+    weight: 900,
+    stretch: 'normal',
     onNameDone: function () { role.classList.add('is-in'); },
-    onConnect: function (i) { sporeEls[i].classList.add('is-found'); }
+    onConnect: function (i) {
+      sporeEls[i].classList.add('is-found');
+      indexButtons[i].classList.add('is-found');
+    }
   });
 
-  // ---- Characters ------------------------------------------------------------------
+  function nameLines() {
+    const words = ME.name.split(/\s+/);
+    return window.innerWidth < 700 && words.length > 1 ? words : [ME.name];
+  }
+
+  // Projects: invisible until the network reaches them.
+  const sporeWrap = $('#spores');
+  const sporeEls = ME.projects.map(function (p, i) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'spore';
+    b.setAttribute('aria-label', p.title);
+    b.innerHTML = '<span class="spore__label">' + p.title + '</span>';
+    b.addEventListener('mouseenter', function () { org.hover = i; });
+    b.addEventListener('mouseleave', function () { org.hover = -1; });
+    b.addEventListener('focus', function () { org.hover = i; });
+    b.addEventListener('blur', function () { org.hover = -1; });
+    b.addEventListener('click', function () {
+      if (org.spores[i].found) enter(i);
+      else { org.target = i; if (reduceMotion) { org.queue = [i]; org.settle(false); } }
+    });
+    sporeWrap.appendChild(b);
+    return b;
+  });
+
+  function layoutDom() {
+    const nb = org.nameBox;
+    role.style.top = (nb.y1 + Math.max(18, nb.size * 0.22)) + 'px';
+    org.spores.forEach(function (s, i) {
+      const el = sporeEls[i];
+      el.style.left = s.x + 'px';
+      el.style.top = s.y + 'px';
+      el.classList.toggle('spore--left', s.x > org.w * 0.6);
+      el.classList.toggle('is-found', s.found);
+    });
+  }
+
+  // ====================================================================================
+  // Project pages: a world in characters. The black hole, and the rider from the photograph.
+  // ====================================================================================
+
   let ascii = null;
   try {
     ascii = new window.Ascii($('#ascii'), { mono: '"Martian Mono", ui-monospace, monospace', accent: [0.435, 0.753, 1] });
   } catch (e) {
-    body.classList.add('no-gl');
+    ascii = null;
   }
-  const photo = new Image();
-  photo.onload = function () { if (ascii) ascii.setImage(photo); };
-  photo.src = PHOTO_SRC;
 
-  // ---- The rider from the photograph -------------------------------------------------
-  // He gallops along the bottom toward the cursor, or wherever he likes when it's still,
-  // and leaves two lines of tracks in the snow that slowly fill back in.
   const RIDER_SRC = 'assets/rider.png';
   const RIDER_AR = 220 / 198;
   const riderImg = new Image();
   riderImg.onload = function () { if (ascii) ascii.setRider(riderImg); };
   riderImg.src = RIDER_SRC;
+
+  // The rider gallops along the bottom toward the cursor, or wherever he likes when it's still,
+  // leaving two lines of tracks in the snow that slowly fill back in.
   const trail = document.createElement('canvas');
   const tctx = trail.getContext('2d');
   const rider = { x: 0, v: 0, target: 0, phase: 0, flip: 0, hooves: null, idle: 0, bob: 0 };
@@ -75,7 +133,7 @@
     trail.height = window.innerHeight;
     rider.x = window.innerWidth * 0.8;
     rider.v = 0;
-    rider.target = window.innerWidth * 0.25;
+    rider.target = window.innerWidth * 0.3;
     rider.hooves = null;
   }
 
@@ -115,73 +173,20 @@
       }
       rider.hooves = [front, back, w1, w2];
     }
-    if (ascii) {
-      ascii.riderRect = [(rider.x - rw / 2) / W, (baseY - rh - rider.bob) / H, (rider.x + rw / 2) / W, (baseY - rider.bob) / H];
-      ascii.riderFlip = rider.flip;
-    }
+    ascii.riderRect = [(rider.x - rw / 2) / W, (baseY - rh - rider.bob) / H, (rider.x + rw / 2) / W, (baseY - rider.bob) / H];
+    ascii.riderFlip = rider.flip;
   }
 
-  function nameLines() {
-    const words = ME.name.split(/\s+/);
-    return window.innerWidth < 700 && words.length > 1 ? words : [ME.name];
-  }
+  // ---- Moving between the front page and a project ----------------------------------
 
-  // ---- Projects in the dark ------------------------------------------------------------
-  const sporeWrap = $('#spores');
-  const sporeEls = ME.projects.map(function (p, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'spore';
-    b.setAttribute('aria-label', p.title);
-    b.innerHTML = '<span class="spore__label">' + p.title + '</span>';
-    b.addEventListener('mouseenter', function () { org.hover = i; });
-    b.addEventListener('mouseleave', function () { org.hover = -1; });
-    b.addEventListener('focus', function () { org.hover = i; });
-    b.addEventListener('blur', function () { org.hover = -1; });
-    b.addEventListener('click', function () {
-      if (org.spores[i].found) enter(i);
-      else { org.target = i; if (reduceMotion) { org.queue = [i]; org.settle(false); } }
-    });
-    sporeWrap.appendChild(b);
-    return b;
-  });
-
-  function homeCalm() {
-    const nb = org.nameBox, W = org.w, H = org.h;
-    return [(nb.x0 - 24) / W, (nb.y0 - 24) / H, (nb.x1 + 24) / W, (nb.y1 + nb.size * 0.5 + 24) / H];
-  }
-
-  function layoutDom() {
-    const nb = org.nameBox;
-    role.style.top = (nb.y1 + Math.max(18, nb.size * 0.22)) + 'px';
-    org.spores.forEach(function (s, i) {
-      const el = sporeEls[i];
-      el.style.left = s.x + 'px';
-      el.style.top = s.y + 'px';
-      el.classList.toggle('spore--left', s.x > org.w * 0.6);
-      el.classList.toggle('is-found', s.found);
-    });
-  }
-
-  function start() {
-    riderReset();
-    org.setup(nameLines(), LAYOUT);
-    if (ascii) ascii.resize(window.innerWidth, window.innerHeight);
-    layoutDom();
-    if (view.project >= 0) placeProject(); else if (ascii) ascii.calm = homeCalm();
-    if (reduceMotion) { org.settle(false); role.classList.add('is-in'); }
-  }
-
-  // ---- The page becomes the project ---------------------------------------------------
-  const CAM_HOME = { dist: 17, incl: 6, phi: -0.5, lean: 0.05 };
-  const CAM_NEAR = { dist: 9.5, incl: 2.4, phi: 0.85, lean: -0.02 };
-  const view = { project: -1, t: 0, from: 0, to: 0, start: 0, dur: 1, done: null, camFrom: CAM_HOME, camTo: CAM_HOME };
+  const view = { project: -1, t: 0, from: 0, to: 0, start: 0, dur: 1, done: null, camFrom: null, camTo: null };
   const projectEl = $('#project');
+  const snap = document.createElement('canvas');
 
   function ease(k) { return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
 
   function animate(to, cam, dur, done) {
-    if (ascii) view.camFrom = Object.assign({}, ascii.cam);
+    view.camFrom = ascii ? Object.assign({}, ascii.cam) : null;
     view.camTo = cam;
     view.from = view.t; view.to = to;
     view.start = performance.now();
@@ -194,12 +199,14 @@
     const k = Math.min(1, (now - view.start) / view.dur), e = ease(k);
     view.t = view.from + (view.to - view.from) * e;
     if (ascii) {
-      const a = view.camFrom, b = view.camTo, c = ascii.cam;
-      c.dist = Math.exp(Math.log(a.dist) + (Math.log(b.dist) - Math.log(a.dist)) * e);
-      c.incl = a.incl + (b.incl - a.incl) * e;
-      c.phi = a.phi + (b.phi - a.phi) * e;
-      c.lean = a.lean + (b.lean - a.lean) * e;
       ascii.t = view.t;
+      const a = view.camFrom, b = view.camTo, c = ascii.cam;
+      if (b) {
+        c.dist = Math.exp(Math.log(a.dist) + (Math.log(b.dist) - Math.log(a.dist)) * e);
+        c.incl = a.incl + (b.incl - a.incl) * e;
+        c.phi = a.phi + (b.phi - a.phi) * e;
+        c.lean = a.lean + (b.lean - a.lean) * e;
+      }
     }
     if (k >= 1) {
       view.start = 0;
@@ -209,22 +216,18 @@
     }
   }
 
-  function imageRect() {
-    const W = window.innerWidth, H = window.innerHeight;
-    let x0, y0, x1, y1;
-    if (W < 700 || H > W) { x0 = 0.06 * W; y0 = 0.07 * H; x1 = 0.94 * W; y1 = 0.5 * H; }
-    else { x0 = 0.48 * W; y0 = 0.09 * H; x1 = 0.95 * W; y1 = 0.91 * H; }
-    let w = x1 - x0, h = y1 - y0;
-    if (w / h > PHOTO_AR) { const nw = h * PHOTO_AR; x0 += (w - nw) / 2; w = nw; }
-    else { const nh = w / PHOTO_AR; y0 += (h - nh) / 2; h = nh; }
-    return [x0 / W, y0 / H, (x0 + w) / W, (y0 + h) / H];
+  // A still of the front page: the moment the page starts to turn.
+  function snapshotHome() {
+    snap.width = base.width;
+    snap.height = base.height;
+    const x = snap.getContext('2d');
+    x.drawImage(base, 0, 0);
+    x.drawImage(over, 0, 0);
+    ascii.setHome(snap);
   }
 
-  function placeProject() {
+  function placeCalm() {
     if (!ascii) return;
-    const p = ME.projects[view.project];
-    ascii.imgOn = p.field === 'image' ? 1 : 0;
-    ascii.imgRect = imageRect();
     const r = $('#p-text').getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
     ascii.calm = [(r.left - 30) / W, (r.top - 30) / H, (r.right + 30) / W, (r.bottom + 30) / H];
   }
@@ -250,12 +253,11 @@
     })(performance.now());
   }
 
-  function fill(i) {
+  function fill(i, delay) {
     const p = ME.projects[i];
-    ['p-meta', 'p-title', 'p-summary'].forEach(function (id) { $('#' + id).dataset.text = ''; });
-    decode($('#p-meta'), p.meta, 250);
-    decode($('#p-title'), p.title, 380);
-    decode($('#p-summary'), p.summary, 650);
+    decode($('#p-meta'), p.meta, delay);
+    decode($('#p-title'), p.title, delay + 130);
+    decode($('#p-summary'), p.summary, delay + 400);
     const link = $('#p-link');
     if (p.link) { link.hidden = false; link.href = p.link; } else link.hidden = true;
   }
@@ -263,43 +265,59 @@
   function enter(i) {
     hideSheet(true);
     const p = ME.projects[i];
-    const go = function () {
-      view.project = i;
-      projectEl.hidden = false;
-      body.classList.add('is-project');
-      fill(i);
-      placeProject();
-      animate(1, p.field === 'blackhole' ? CAM_NEAR : CAM_HOME, 1500, function () { $('#p-back').focus({ preventScroll: true }); });
-    };
-    // From one project to another: scramble back to home first, then into the next.
-    if (view.project >= 0 && view.project !== i) animate(0, CAM_HOME, 700, go);
-    else go();
+    const already = view.project >= 0;
+    view.project = i;
+    projectEl.hidden = false;
+    body.classList.add('is-project');
+    if (!ascii) { fill(i, 0); return; }
+    if (already) {
+      // From one world to the next: the camera flies to the new view.
+      fill(i, 200);
+      animate(1, p.view, 1800);
+    } else {
+      snapshotHome();
+      riderReset();
+      ascii.cam = Object.assign({}, p.view, { dist: p.view.dist * 1.8 });
+      ascii.t = 0;
+      body.classList.add('in-world');
+      fill(i, 700);
+      animate(1, p.view, 1700, function () { $('#p-back').focus({ preventScroll: true }); });
+    }
+    requestAnimationFrame(placeCalm);
   }
 
   function leave() {
     if (view.project < 0) return;
     body.classList.remove('is-project');
-    animate(0, CAM_HOME, 1300, function () {
+    if (!ascii) { projectEl.hidden = true; view.project = -1; return; }
+    const back = Object.assign({}, ascii.cam, { dist: ascii.cam.dist * 1.8 });
+    animate(0, back, 1300, function () {
       projectEl.hidden = true;
       view.project = -1;
-      if (ascii) ascii.calm = homeCalm();
+      body.classList.remove('in-world');
     });
   }
 
   $('#p-back').addEventListener('click', leave);
   $('#p-next').addEventListener('click', function () { enter((view.project + 1) % ME.projects.length); });
 
-  // ---- Work and contact ----------------------------------------------------------------
+  // ---- Work and contact ---------------------------------------------------------------
+
   const list = $('#index-list');
-  ME.projects.forEach(function (p, i) {
+  const indexButtons = ME.projects.map(function (p, i) {
     const li = document.createElement('li');
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = p.title;
-    b.addEventListener('click', function () { enter(i); });
+    b.addEventListener('click', function () {
+      if (!org.spores[i].found) org.target = i;
+      enter(i);
+    });
     li.appendChild(b);
     list.appendChild(li);
+    return b;
   });
+
   $('#links').innerHTML = ME.links.map(function (l) {
     return '<li><a href="' + l.href + '" target="_blank" rel="noopener">' + l.label + '</a></li>';
   }).join('');
@@ -327,7 +345,8 @@
   $('#open-index').addEventListener('click', function () { showSheet('sheet-index'); });
   $('#open-contact').addEventListener('click', function () { showSheet('sheet-contact'); });
 
-  // ---- The visitor ------------------------------------------------------------------------
+  // ---- The visitor ----------------------------------------------------------------------
+
   const pointer = { x: -999, y: -999, on: 0, lx: 0, ly: 0, moved: 0 };
   let touchTimer = 0;
   window.addEventListener('pointermove', function (e) {
@@ -346,28 +365,40 @@
     org.touch(e.clientX, e.clientY);
   });
 
-  // ---- Loop ---------------------------------------------------------------------------------
+  // ---- Loop -------------------------------------------------------------------------------
+
   let lens = 0;
   function loop(now) {
     tween(now);
-    const home = view.t < 0.999 || view.project < 0;
-    if (!reduceMotion && !document.hidden && home && !openSheet) {
+    const inWorld = body.classList.contains('in-world');
+    // The front page rests while a project or a sheet covers it.
+    if (!inWorld && !reduceMotion && !document.hidden && !openSheet) {
       org.update();
       org.render();
     }
-    riderStep(!reduceMotion && !document.hidden && view.project < 0 && !openSheet);
-    if (ascii && !document.hidden) {
+    if (inWorld && ascii && !document.hidden) {
+      riderStep(!reduceMotion && !openSheet);
       lens += ((openSheet ? 0 : pointer.on) - lens) * 0.15;
       const W = window.innerWidth, H = window.innerHeight;
       pointer.lx += ((pointer.on ? (0.5 - pointer.x / W) * 0.07 : 0) - pointer.lx) * 0.04;
       pointer.ly += ((pointer.on ? (0.5 - pointer.y / H) * 0.045 : 0) - pointer.ly) * 0.04;
       ascii.look = [pointer.lx, pointer.ly];
       ascii.mouse = [pointer.x, pointer.y, lens > 0.5 ? 1 : 0];
-      ascii.draw(reduceMotion ? 3 : now / 1000, [trail, base, over]);
-    } else if (!ascii && !reduceMotion && home && !openSheet) {
-      // Without WebGL the network is shown as drawn.
+      ascii.draw(reduceMotion ? 3 : now / 1000, [trail]);
     }
     requestAnimationFrame(loop);
+  }
+
+  function start() {
+    org.setup(nameLines(), LAYOUT);
+    layoutDom();
+    if (ascii) ascii.resize(window.innerWidth, window.innerHeight);
+    riderReset();
+    if (view.project >= 0) placeCalm();
+    if (reduceMotion) {
+      org.settle(false);
+      role.classList.add('is-in');
+    }
   }
 
   let lastW = 0, lastH = 0, rt = 0;
@@ -377,6 +408,7 @@
       if (Math.abs(window.innerWidth - lastW) < 40 && Math.abs(window.innerHeight - lastH) < 120) return;
       lastW = window.innerWidth; lastH = window.innerHeight;
       start();
+      if (view.project >= 0 && ascii) snapshotHome();
     }, 250);
   });
 

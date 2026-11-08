@@ -79,11 +79,11 @@ void main(){
 }`;
 
   const ASCII = `precision highp float;
-uniform sampler2D uBH,uOrg,uImg,uAtlas,uRider;
+uniform sampler2D uBH,uOrg,uHome,uAtlas,uRider;
 uniform vec4 uRiderRect;uniform float uRiderFlip;
-uniform vec2 uRes,uCell;uniform float uGlyphs,uNoise0,uTime,uT,uImgOn,uOrgOn,uExposure;
+uniform vec2 uRes,uCell;uniform float uGlyphs,uNoise0,uTime,uT,uExposure;
 uniform vec3 uMouse;uniform float uLensR;
-uniform vec4 uImgRect,uCalm;uniform vec3 uAccent;
+uniform vec4 uCalm;uniform vec3 uAccent;
 float h12(vec2 p){vec3 q=fract(vec3(p.xyx)*0.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 vec3 aces(vec3 x){return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.,1.);}
 float lum(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
@@ -94,6 +94,13 @@ vec3 blackhole(vec2 uv,float dim){
   return pow(c,vec3(1./2.2))*mix(1.,dim,k.x*k.y);}
 void main(){
   vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  vec2 cell0=floor(p/uCell);
+  float seed=h12(cell0+0.37);
+  float edge=uT*1.12-0.06;
+
+  // Not yet turned: the front page exactly as it was.
+  if(seed>edge){gl_FragColor=vec4(texture2D(uHome,p/uRes).rgb,1.);return;}
+
   float d=length(p-uMouse.xy);
   float lens=uMouse.z*(1.-smoothstep(uLensR*0.82,uLensR,d));
   vec2 cell=lens>0.5?uCell*0.5:uCell;
@@ -101,62 +108,46 @@ void main(){
   vec2 ctr=(cid+0.5)*cell;
   vec2 sc=lens>0.5?uMouse.xy+(ctr-uMouse.xy)*mix(0.62,1.,pow(d/uLensR,2.)):ctr;
   vec2 uv=sc/uRes;
-  float seed=h12(floor(ctr/uCell)+0.37);
 
-  // Home: the grown network over the black hole.
-  vec3 hc=blackhole(uv,0.3);float hi=rampIdx(lum(hc)*1.15);
-  vec2 tap=cell/uRes/3.;
-  float cov=0.,sxx=0.,syy=0.,sxy=0.;vec3 oc=vec3(0.);
-  for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
-    vec4 s=texture2D(uOrg,uv+vec2(float(i),float(j))*tap);
-    cov+=s.a;oc+=s.rgb*s.a;
-    float x=float(i),y=float(j);sxx+=s.a*x*x;syy+=s.a*y*y;sxy+=s.a*x*y;}
-  cov/=9.;
-  if(cov*uOrgOn>0.05){
-    oc/=max(cov*9.,1e-3);
-    float an=0.5*atan(2.*sxy,sxx-syy);
-    float aniso=length(vec2(sxx-syy,2.*sxy))/max(sxx+syy,1e-3);
-    if(aniso>0.45&&cov<0.6){float a=degrees(an);
-      hi=abs(a)<22.5?5.:(abs(a)>67.5?12.:(a<0.?13.:14.));}
-    else hi=rampIdx(0.35+cov*0.9);
-    hc=oc*mix(0.75,1.25,clamp(cov*2.,0.,1.));
-  }
+  float idx;vec3 col;
+  if(seed>edge-0.06){
+    // Turning: scrambling characters.
+    idx=uNoise0+floor(h12(cid+floor(uTime*20.))*(uGlyphs-uNoise0));col=uAccent;
+  }else{
+    // The project world: the black hole in characters.
+    col=blackhole(uv,0.3);idx=rampIdx(lum(col)*1.15);
 
-  // The rider, over everything at home.
-  vec2 ru=(uv-uRiderRect.xy)/(uRiderRect.zw-uRiderRect.xy);
-  if(all(greaterThanEqual(ru,vec2(0.)))&&all(lessThanEqual(ru,vec2(1.)))){
-    if(uRiderFlip>0.5)ru.x=1.-ru.x;
-    vec4 rs=texture2D(uRider,ru);
-    if(rs.a>0.45){
-      vec2 rd=(uCell*1.2/uRes)/(uRiderRect.zw-uRiderRect.xy);
-      float l0=lum(rs.rgb);
-      float lb=0.25*(lum(texture2D(uRider,ru+vec2(rd.x,0.)).rgb)+lum(texture2D(uRider,ru-vec2(rd.x,0.)).rgb)
-                    +lum(texture2D(uRider,ru+vec2(0.,rd.y)).rgb)+lum(texture2D(uRider,ru-vec2(0.,rd.y)).rgb));
-      hi=rampIdx(clamp(0.16+l0*0.78+(l0-lb)*2.2,0.08,1.));
-      hc=rs.rgb*1.25+0.05;
+    // Tracks in the snow, drawn by the direction they run.
+    vec2 tap=cell/uRes/3.;
+    float cov=0.,sxx=0.,syy=0.,sxy=0.;vec3 oc=vec3(0.);
+    for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+      vec4 s=texture2D(uOrg,uv+vec2(float(i),float(j))*tap);
+      cov+=s.a;oc+=s.rgb*s.a;
+      float x=float(i),y=float(j);sxx+=s.a*x*x;syy+=s.a*y*y;sxy+=s.a*x*y;}
+    cov/=9.;
+    if(cov>0.05){
+      oc/=max(cov*9.,1e-3);
+      float an=degrees(0.5*atan(2.*sxy,sxx-syy));
+      float aniso=length(vec2(sxx-syy,2.*sxy))/max(sxx+syy,1e-3);
+      idx=aniso>0.45&&cov<0.6?(abs(an)<22.5?5.:(abs(an)>67.5?12.:(an<0.?13.:14.))):rampIdx(0.35+cov*0.9);
+      col=oc*mix(0.75,1.25,clamp(cov*2.,0.,1.));
+    }
+
+    // The rider.
+    vec2 ru=(uv-uRiderRect.xy)/(uRiderRect.zw-uRiderRect.xy);
+    if(all(greaterThanEqual(ru,vec2(0.)))&&all(lessThanEqual(ru,vec2(1.)))){
+      if(uRiderFlip>0.5)ru.x=1.-ru.x;
+      vec4 rs=texture2D(uRider,ru);
+      if(rs.a>0.45){
+        vec2 rd=(uCell*1.2/uRes)/(uRiderRect.zw-uRiderRect.xy);
+        float l0=lum(rs.rgb);
+        float lb=0.25*(lum(texture2D(uRider,ru+vec2(rd.x,0.)).rgb)+lum(texture2D(uRider,ru-vec2(rd.x,0.)).rgb)
+                      +lum(texture2D(uRider,ru+vec2(0.,rd.y)).rgb)+lum(texture2D(uRider,ru-vec2(0.,rd.y)).rgb));
+        idx=rampIdx(clamp(0.16+l0*0.78+(l0-lb)*2.2,0.08,1.));
+        col=rs.rgb*1.25+0.05;
+      }
     }
   }
-
-  // Project: an image in its frame, the black hole elsewhere.
-  vec3 pc;float pi;
-  vec2 iu=(uv-uImgRect.xy)/(uImgRect.zw-uImgRect.xy);
-  if(uImgOn>0.5&&all(greaterThanEqual(iu,vec2(0.)))&&all(lessThanEqual(iu,vec2(1.)))){
-    // Brightness plus local contrast, so tracks in snow and a rider against the sky survive.
-    pc=texture2D(uImg,iu).rgb;
-    vec2 dd=(uCell*1.6/uRes)/(uImgRect.zw-uImgRect.xy);
-    float l0=lum(pc);
-    float lb=0.25*(lum(texture2D(uImg,iu+vec2(dd.x,0.)).rgb)+lum(texture2D(uImg,iu-vec2(dd.x,0.)).rgb)
-                  +lum(texture2D(uImg,iu+vec2(0.,dd.y)).rgb)+lum(texture2D(uImg,iu-vec2(0.,dd.y)).rgb));
-    pi=rampIdx(clamp((l0+(l0-lb)*2.5-0.28)/0.72,0.,1.));pc*=1.1;
-  }else{pc=blackhole(uv,1.)*mix(1.,0.3,uImgOn);pi=rampIdx(lum(pc)*1.15);}
-
-  // Every cell flips in its own moment, scrambling on the way.
-  float edge=uT*1.12-0.06;
-  float idx;vec3 col;
-  if(seed<edge-0.06){idx=pi;col=pc;}
-  else if(seed>edge){idx=hi;col=hc;}
-  else{idx=uNoise0+floor(h12(cid+floor(uTime*20.))*(uGlyphs-uNoise0));col=uAccent;}
-
   float m=texture2D(uAtlas,vec2((idx+local.x)/uGlyphs,local.y)).a;
   gl_FragColor=vec4(col*m,1.);
 }`;
@@ -175,7 +166,7 @@ void main(){
     this.bhTex = this.texture(gl.LINEAR);
     this.fbo = gl.createFramebuffer();
     this.orgTex = this.texture(gl.LINEAR);
-    this.imgTex = this.texture(gl.LINEAR);
+    this.homeTex = this.texture(gl.LINEAR);
     this.atlasTex = this.texture(gl.LINEAR);
     this.riderTex = this.texture(gl.LINEAR);
     this.riderRect = [-1, -1, -1, -1];
@@ -184,11 +175,9 @@ void main(){
     this.fctx = this.feed.getContext('2d');
     this.mouse = [0, 0, 0];
     this.t = 0;            // 0 home → 1 project
-    this.imgOn = 0;
     this.cam = { dist: 17, incl: 6, phi: -0.5, lean: 0.05 };
     this.look = [0, 0];
     this.calm = [0, 0, 0, 0];
-    this.imgRect = [0, 0, 1, 1];
   }
   const A = Ascii.prototype;
 
@@ -268,10 +257,11 @@ void main(){
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
   };
 
-  A.setImage = function (img) {
+  // A still of the front page, used as the starting point of a transition.
+  A.setHome = function (canvas) {
     const gl = this.gl;
-    gl.bindTexture(gl.TEXTURE_2D, this.imgTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.bindTexture(gl.TEXTURE_2D, this.homeTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
   };
 
   A.setRider = function (img) {
@@ -334,7 +324,7 @@ void main(){
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.enableVertexAttribArray(p.a);
     gl.vertexAttribPointer(p.a, 2, gl.FLOAT, false, 0, 0);
-    const units = [['uBH', this.bhTex], ['uOrg', this.orgTex], ['uImg', this.imgTex], ['uAtlas', this.atlasTex], ['uRider', this.riderTex]];
+    const units = [['uBH', this.bhTex], ['uOrg', this.orgTex], ['uHome', this.homeTex], ['uAtlas', this.atlasTex], ['uRider', this.riderTex]];
     units.forEach(function (u, i) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, u[1]);
@@ -348,12 +338,9 @@ void main(){
     gl.uniform1f(p.u.uNoise0, RAMP.length + DIRS.length);
     gl.uniform1f(p.u.uTime, time);
     gl.uniform1f(p.u.uT, this.t);
-    gl.uniform1f(p.u.uImgOn, this.imgOn);
-    gl.uniform1f(p.u.uOrgOn, 1);
     gl.uniform1f(p.u.uExposure, 1.7 + 1.0 * Math.min(1, Math.max(0, (this.cam.dist - 9.5) / 7.5)));
     gl.uniform3f(p.u.uMouse, this.mouse[0] * d, this.mouse[1] * d, this.mouse[2]);
     gl.uniform1f(p.u.uLensR, (this.w < 700 ? 90 : 130) * d);
-    gl.uniform4fv(p.u.uImgRect, this.imgRect);
     gl.uniform4fv(p.u.uCalm, this.calm);
     gl.uniform4fv(p.u.uRiderRect, this.riderRect);
     gl.uniform1f(p.u.uRiderFlip, this.riderFlip);
