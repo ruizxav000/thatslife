@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en" data-theme="fluor">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>That's Life — Portfolio</title>
+  <meta name="description" content="A portfolio grown from the rules living networks use: branching, fusing, and flowing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Pick the starting theme before paint: saved choice, else follow the OS.
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('tl-theme'); } catch (e) {}
+      if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'stain' : 'fluor';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <a class="wordmark" href="#top">that's life<span class="dot" aria-hidden="true"></span></a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+      <a href="#notes">Field notes</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="stains" role="group" aria-label="Colour theme">
+      <button type="button" data-set-theme="fluor" title="Fluorescence"><i class="sw sw--fluor"></i><span>Fluor</span></button>
+      <button type="button" data-set-theme="stain" title="Brightfield stain"><i class="sw sw--stain"></i><span>Stain</span></button>
+      <button type="button" data-set-theme="wave" title="Age map"><i class="sw sw--wave"></i><span>Wave</span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 01 · HERO: a live mycelium, branching–annihilating random walk -->
+    <section class="hero" id="top">
+      <canvas class="hero__canvas" id="hyphae" aria-hidden="true"></canvas>
+      <div class="hero__content">
+        <p class="label">Specimen 01 · Branching–annihilating random walk</p>
+        <h1>Random,<br>but <em>serving</em><br>a purpose.</h1>
+        <p class="lede">Portfolio v2 of <strong>Your Name</strong>: design and engineering shaped by the rules living networks use to branch, fuse and flow.</p>
+        <a class="cta" href="#work">Follow the network <span aria-hidden="true">↓</span></a>
+      </div>
+      <dl class="readout" aria-live="off">
+        <div><dt>tips</dt><dd id="r-tips">0</dd></div>
+        <div><dt>anastomoses</dt><dd id="r-fusions">0</dd></div>
+        <div><dt>coverage</dt><dd id="r-cover">0%</dd></div>
+        <div><dt>t</dt><dd id="r-time">0</dd></div>
+      </dl>
+      <p class="hint">Click to seed a colony · tips bend toward your cursor</p>
+    </section>
+
+    <!-- 02 · WORK: projects are food sources in an adaptive transport network -->
+    <section class="section work" id="work">
+      <div class="section-head">
+        <p class="label">Specimen 02 · Adaptive transport network</p>
+        <h2>Selected <em>work</em></h2>
+        <p class="lede">Each project is a food source. Tubes that carry flow thicken, idle ones wither, and the network settles into the efficient, loop-tolerant shape that slime mould found for the Tokyo rail system.</p>
+      </div>
+
+      <div class="work__grid">
+        <ol class="projects" id="project-list"></ol>
+
+        <figure class="net">
+          <canvas id="network" aria-label="Animated network linking the projects"></canvas>
+          <figcaption class="net__panel">
+            <div class="net__stats mono">
+              <span>iter <b id="n-iter">0</b></span>
+              <span>tubes <b id="n-tubes">0</b></span>
+              <span>length <b id="n-len">0</b> px</span>
+            </div>
+            <label class="ctl">
+              <span>Path selection γ <b id="v-gamma">1.40</b></span>
+              <input type="range" id="gamma" min="0.8" max="3" step="0.05" value="1.4">
+            </label>
+            <label class="ctl">
+              <span>Flux I₀ <b id="v-flux">1.40</b></span>
+              <input type="range" id="flux" min="0.4" max="3" step="0.05" value="1.4">
+            </label>
+            <button type="button" class="btn" id="regrow">Re-grow network</button>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 03 · ABOUT -->
+    <section class="section about" id="about">
+      <div class="section-head">
+        <p class="label">Specimen 03 · The organism</p>
+        <h2>About</h2>
+      </div>
+      <div class="about__grid">
+        <div class="about__bio">
+          <p class="big">I design and build things that grow: interfaces, systems and stories that start small, explore widely and keep what works.</p>
+          <p>Placeholder bio. Replace this with a few honest sentences about who you are, what you make, and the kind of problems that pull you in. Keep it short; the work above does the heavy lifting.</p>
+        </div>
+        <ul class="principles">
+          <li>
+            <span class="mono idx">i.</span>
+            <h3>Explore, then exploit</h3>
+            <p>Tips at the front search widely; the network behind them commits to the routes that pay off.</p>
+          </li>
+          <li>
+            <span class="mono idx">ii.</span>
+            <h3>Fuse, don't duplicate</h3>
+            <p>When two paths meet they join. Loops make a network resilient, and the same goes for teams and code.</p>
+          </li>
+          <li>
+            <span class="mono idx">iii.</span>
+            <h3>Grow where there's flow</h3>
+            <p>Effort goes where it's used. Everything else is allowed to thin out.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 04 · FIELD NOTES: the real math on this page -->
+    <section class="section notes" id="notes">
+      <div class="section-head">
+        <p class="label">Specimen 04 · Methods</p>
+        <h2>Field <em>notes</em></h2>
+        <p class="lede">Nothing on this page is keyframed. Every pattern is a simulation running in your browser, using published models.</p>
+      </div>
+      <div class="notes__grid">
+        <article class="note">
+          <h3>Travelling-wave growth</h3>
+<pre class="eq">θ ← θ + σξ,   ξ ~ N(0,1)
+x ← x + ℓ(cos θ, sin θ)
+branch with p = 0.022 / step
+fuse on contact → tip stops</pre>
+          <p>Tips random-walk, branch and fuse. No global rule exists, yet the colony advances as a wave with constant density behind the front.</p>
+          <p class="cite">Oyarte Gálvez et al., <i>Nature</i> 639 (2025) · Hannezo et al., <i>Cell</i> 171 (2017)</p>
+        </article>
+        <article class="note">
+          <h3>Adaptive tubes</h3>
+<pre class="eq">Σⱼ (Dᵢⱼ/Lᵢⱼ)(pᵢ − pⱼ) = Iᵢ
+Qᵢⱼ = (Dᵢⱼ/Lᵢⱼ)(pᵢ − pⱼ)
+dDᵢⱼ/dt = f(|Qᵢⱼ|) − Dᵢⱼ
+f(Q) = Qᵞ / (1 + Qᵞ)</pre>
+          <p>Kirchhoff flow through a mesh, solved each frame with conjugate gradients. Used tubes thicken and idle ones decay.</p>
+          <p class="cite">Tero et al., <i>Science</i> 327, 439 (2010)</p>
+        </article>
+        <article class="note">
+          <h3>Two-way streaming</h3>
+<pre class="eq">v ∝ Q   (sign = direction)
+source, sink resampled
+every iteration</pre>
+          <p>Particles ride the flux. Because sources change, flow reverses along the same tubes, like the bidirectional cytoplasmic traffic filmed in fungal hyphae.</p>
+          <p class="cite">Oyarte Gálvez et al., <i>Nature</i> 639 (2025)</p>
+        </article>
+        <article class="note">
+          <h3>Tube radius</h3>
+<pre class="eq">D ∝ r⁴   (Hagen–Poiseuille)
+r³ = Σ rᵢ³   (Murray's law)</pre>
+          <p>Conductivity grows with the fourth power of radius, which is why trunks are few and thick. Line width here is drawn as √D, exaggerated for legibility.</p>
+          <p class="cite">Murray, <i>PNAS</i> 12 (1926)</p>
+        </article>
+        <article class="note">
+          <h3>Chemotropism</h3>
+<pre class="eq">θ ← θ + κ·sin(φ − θ)·(1 − d/R)</pre>
+          <p>Hyphae respond to chemical signals from roots. Here your cursor plays the root: nearby tips steer toward it.</p>
+          <p class="cite">Model choice for this page</p>
+        </article>
+        <article class="note">
+          <h3>Colour</h3>
+<pre class="eq">inferno · plasma · viridis</pre>
+          <p>Perceptually uniform colormaps, the ones used for fluorescence and age maps in the research figures. Hyphae are coloured by when they grew.</p>
+          <p class="cite">van der Walt &amp; Smith, matplotlib (2015)</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 05 · CONTACT -->
+    <section class="section contact" id="contact">
+      <p class="label">Specimen 05 · Anastomosis</p>
+      <h2 class="contact__title">Let's <em>fuse</em>.</h2>
+      <p class="lede">Two networks meeting is how new loops form. Say hello.</p>
+      <div class="contact__links">
+        <a class="cta" href="mailto:hello@example.com">hello@example.com</a>
+        <a href="#" class="mono">LinkedIn ↗</a>
+        <a href="#" class="mono">GitHub ↗</a>
+        <a href="#" class="mono">Read.cv ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer mono">
+    <span>© <span id="year"></span> Your Name</span>
+    <span>Grown, not drawn.</span>
+  </footer>
+
+  <dialog class="project-dialog" id="project-dialog">
+    <form method="dialog">
+      <p class="label" id="pd-meta"></p>
+      <h3 id="pd-title"></h3>
+      <p id="pd-blurb"></p>
+      <button class="btn" value="close">Close</button>
+    </form>
+  </dialog>
+
+  <script src="js/colormaps.js"></script>
+  <script src="js/hyphae.js"></script>
+  <script src="js/physarum.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
