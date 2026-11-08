@@ -16,6 +16,7 @@
   const CAP = 260000;   // max segments
   const CELL = 3;       // fusion grid, px
   const COARSE = 18;    // nearest-thread lookup grid, px
+  const BUCK = 32;      // light-field lookup grid, px
   const BG = '#040208';
 
   function gauss() {
@@ -89,6 +90,9 @@
     this.cw = Math.ceil(this.w / COARSE) + 1;
     this.ch = Math.ceil(this.h / COARSE) + 1;
     this.coarse = new Int32Array(this.cw * this.ch);
+    this.bw = Math.ceil(this.w / BUCK) + 1;
+    this.bh = Math.ceil(this.h / BUCK) + 1;
+    this.buckets = new Array(this.bw * this.bh);
     this.b.fillStyle = BG;
     this.b.fillRect(0, 0, this.w, this.h);
     this.buildMask();
@@ -234,7 +238,7 @@
     }
 
     this.att = this.attractor();
-    if (this.nameDone && this.att && f % 8 === 0) this.reach(this.att);
+    if (f > 50 && this.att && f % 5 === 0) this.reach(this.att);
     if (this.nameDone && !this.att && f % 140 === 0) this.wander();
 
     const sub = this.nameDone ? 2 : 3;
@@ -264,6 +268,8 @@
     this.skind[i] = tp.kind;
     tp.last = i; tp.x = nx; tp.y = ny; tp.age++;
     this.coarse[((ny / COARSE) | 0) * this.cw + ((nx / COARSE) | 0)] = i + 1;
+    const bi = ((ny / BUCK) | 0) * this.bw + ((nx / BUCK) | 0);
+    (this.buckets[bi] || (this.buckets[bi] = [])).push(i);
     return i;
   };
 
@@ -361,9 +367,12 @@
 
   // Extend the network toward a point by sprouting from its nearest thread.
   P.reach = function (att) {
-    let homing = 0;
-    for (let i = 0; i < this.tips.length; i++) if (this.tips[i].tro > 0.05) homing++;
-    if (homing >= 4 || this.tips.length > 70) return;
+    let homing = 0, free = 0;
+    for (let i = 0; i < this.tips.length; i++) {
+      if (this.tips[i].kind === 1) free++;
+      if (this.tips[i].tro > 0.05) homing++;
+    }
+    if (homing >= 6 || free > 80) return;
     const s = this.nearestSeg(att.x, att.y);
     if (s < 0) return;
     const x = this.sx2[s], y = this.sy2[s];
@@ -394,6 +403,15 @@
   };
 
   // ---- Light travelling through the network -----------------------------------
+
+  P.touch = function (x, y) {
+    const s = this.nearestSeg(x, y);
+    if (s < 0) return;
+    this.pulses.push({ path: this.trace(s), t: 0, speed: 3.6, a: 1 });
+    for (let k = 0; k < 4; k++) {
+      this.tips.push({ x: this.sx2[s], y: this.sy2[s], a: Math.random() * TAU, id: this.nextId++, age: 0, last: s, kind: 1, life: 40 + Math.random() * 60, tro: 0 });
+    }
+  };
 
   P.trace = function (i) {
     const out = [];
@@ -539,15 +557,41 @@
       o.beginPath(); o.arc(s.x, s.y, s.found ? 2.6 + s.bloom : 1.4, 0, TAU); o.fill();
     }
 
-    // The visitor: a faint field of nutrients under the cursor.
+    // The visitor carries light: threads near the cursor glow as it passes.
     if (this.pointer && f - this.pointerFrame < 170) {
       const fade = 1 - (f - this.pointerFrame) / 170;
-      const px = this.pointer.x, py = this.pointer.y;
-      const g = o.createRadialGradient(px, py, 0, px, py, 70);
-      g.addColorStop(0, 'rgba(150,80,255,' + 0.1 * fade + ')');
-      g.addColorStop(1, 'rgba(150,80,255,0)');
+      const px = this.pointer.x, py = this.pointer.y, R = 120;
+      const b0 = Math.max(0, ((px - R) / BUCK) | 0), b1 = Math.min(this.bw - 1, ((px + R) / BUCK) | 0);
+      const c0 = Math.max(0, ((py - R) / BUCK) | 0), c1 = Math.min(this.bh - 1, ((py + R) / BUCK) | 0);
+      const NB = 5, paths = [];
+      for (let j = c0; j <= c1; j++) {
+        for (let i = b0; i <= b1; i++) {
+          const list = this.buckets[j * this.bw + i];
+          if (!list) continue;
+          for (let n = 0; n < list.length; n++) {
+            const e = list[n];
+            const mx = (this.sx1[e] + this.sx2[e]) / 2 - px, my = (this.sy1[e] + this.sy2[e]) / 2 - py;
+            const d2 = mx * mx + my * my;
+            if (d2 >= R * R) continue;
+            const k = Math.min(NB - 1, ((Math.sqrt(d2) / R) * NB) | 0);
+            const p = paths[k] || (paths[k] = new Path2D());
+            p.moveTo(this.sx1[e], this.sy1[e]);
+            p.lineTo(this.sx2[e], this.sy2[e]);
+          }
+        }
+      }
+      o.lineWidth = 1.1;
+      for (let k = 0; k < NB; k++) {
+        if (!paths[k]) continue;
+        const t = 1 - k / NB;
+        o.strokeStyle = window.Colormap.css('plasma', 0.55 + 0.4 * t, (0.08 + 0.75 * t * t) * fade);
+        o.stroke(paths[k]);
+      }
+      const g = o.createRadialGradient(px, py, 0, px, py, 16);
+      g.addColorStop(0, 'rgba(255,236,190,' + 0.55 * fade + ')');
+      g.addColorStop(1, 'rgba(255,170,80,0)');
       o.fillStyle = g;
-      o.beginPath(); o.arc(px, py, 70, 0, TAU); o.fill();
+      o.beginPath(); o.arc(px, py, 16, 0, TAU); o.fill();
     }
     o.restore();
   };

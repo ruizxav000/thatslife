@@ -17,7 +17,7 @@ body {
   font-stretch: 100%;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  cursor: crosshair;
+  cursor: none;
 }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; }
@@ -51,8 +51,6 @@ a { color: inherit; }
 .corner--bl { bottom: max(16px, env(safe-area-inset-bottom)); left: var(--edge); }
 .corner--br { bottom: max(16px, env(safe-area-inset-bottom)); right: max(18px, env(safe-area-inset-right)); }
 button.corner:hover { color: var(--fg); }
-.clock { font-variant-numeric: tabular-nums; }
-.count { font-variant-numeric: tabular-nums; margin-left: 6px; opacity: 0.6; }
 
 /* Project spores: invisible hit areas until found, then a quiet label */
 .spores { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
@@ -68,7 +66,6 @@ button.corner:hover { color: var(--fg); }
   pointer-events: none;
 }
 .spore--left .spore__label { left: auto; right: 46px; text-align: right; }
-.spore__label small { display: block; font-size: 11px; color: var(--dim); font-stretch: 100%; }
 .spore.is-found .spore__label { opacity: 1; }
 .spore:hover .spore__label, .spore:focus-visible .spore__label { color: var(--gold); }
 
@@ -91,37 +88,26 @@ button.corner:hover { color: var(--fg); }
 
 .index { list-style: none; max-width: 1100px; margin: 0 auto; }
 .index button {
-  width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 8px 32px; align-items: baseline;
-  text-align: left; padding: clamp(14px, 2.4vh, 22px) 0; border-top: 1px solid var(--faint);
-  transition: color 0.3s;
+  width: 100%; text-align: left; padding: clamp(14px, 2.4vh, 22px) 0; border-top: 1px solid var(--faint);
+  font-size: clamp(30px, 5vw, 72px); font-weight: 700; font-stretch: 118%; line-height: 1; letter-spacing: -0.02em;
+  color: rgba(236, 232, 247, 0.3); transition: color 0.3s;
 }
 .index li:last-child button { border-bottom: 1px solid var(--faint); }
-.index .t { font-size: clamp(28px, 4.6vw, 64px); font-weight: 700; font-stretch: 118%; line-height: 1; letter-spacing: -0.02em; }
-.index .k, .index .y { font-size: 13px; color: var(--dim); }
-.index .y { font-variant-numeric: tabular-nums; }
-.index button:not(.is-found) .t { color: rgba(236, 232, 247, 0.32); }
-.index button:hover .t, .index button:focus-visible .t { color: var(--gold); }
-@media (max-width: 640px) {
-  .index button { grid-template-columns: 1fr auto; }
-  .index .k { grid-column: 1; grid-row: 2; }
-  .index .y { grid-row: 1 / span 2; align-self: center; }
-}
+.index button.is-found { color: var(--fg); }
+.index button:hover, .index button:focus-visible { color: var(--gold); }
 
 .contact { max-width: 1100px; margin: 0 auto; min-height: 60vh; display: grid; align-content: center; gap: 40px; }
-.contact__mail {
-  font-size: clamp(32px, 7vw, 104px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1;
-  text-decoration: none; overflow-wrap: anywhere;
+.contact__links {
+  list-style: none; display: grid; gap: 8px;
+  font-size: clamp(36px, 7vw, 104px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1;
 }
-.contact__mail:hover { color: var(--gold); }
-.contact__links { list-style: none; display: flex; flex-wrap: wrap; gap: 12px 32px; font-size: 15px; color: var(--dim); }
 .contact__links a { text-decoration: none; }
-.contact__links a:hover { color: var(--fg); }
+.contact__links a:hover { color: var(--gold); }
 
 .project { max-width: 1100px; margin: 0 auto; display: grid; gap: clamp(28px, 5vh, 56px); }
 .project__head { display: grid; gap: 28px; }
 .project h2 { font-size: clamp(44px, 9vw, 140px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.035em; line-height: 0.92; }
-.project__meta { display: flex; flex-wrap: wrap; gap: 12px 48px; font-size: 13px; }
-.project__meta dt { color: var(--dim); }
+.project__meta { font-size: 14px; color: var(--dim); }
 .project__summary { font-size: clamp(18px, 1.8vw, 24px); line-height: 1.45; max-width: 40ch; }
 .project__media { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .frame { aspect-ratio: 4 / 5; border: 1px solid var(--faint); border-radius: 2px; background: rgba(236, 232, 247, 0.02); }

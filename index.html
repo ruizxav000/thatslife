@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Your Name — Job Title</title>
-  <meta name="description" content="Your Name, Job Title.">
+  <title>Xavier Ruiz</title>
+  <meta name="description" content="Xavier Ruiz, Product Marketing @ ServiceNow. Boston, MA.">
   <meta name="theme-color" content="#040208">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,14 +20,11 @@
 
   <div class="spores" id="spores"></div>
 
-  <div class="corner corner--tl" aria-hidden="true">
-    <span data-place></span>
-    <span class="clock" id="clock"></span>
-  </div>
-  <button class="corner corner--bl" id="open-index" type="button">Index <span class="count" id="count"></span></button>
+  <p class="corner corner--tl" data-place></p>
+  <button class="corner corner--bl" id="open-index" type="button">Work</button>
   <button class="corner corner--br" id="open-contact" type="button">Contact</button>
 
-  <section class="sheet" id="sheet-index" aria-label="Index" hidden>
+  <section class="sheet" id="sheet-index" aria-label="Work" hidden>
     <button class="close" type="button" data-close>Close</button>
     <ol class="index" id="index-list"></ol>
   </section>
@@ -35,7 +32,6 @@
   <section class="sheet" id="sheet-contact" aria-label="Contact" hidden>
     <button class="close" type="button" data-close>Close</button>
     <div class="contact">
-      <a class="contact__mail" id="mail" href="#"></a>
       <ul class="contact__links" id="links"></ul>
     </div>
   </section>
@@ -45,11 +41,7 @@
     <article class="project">
       <header class="project__head">
         <h2 id="p-title"></h2>
-        <dl class="project__meta">
-          <div><dt>Type</dt><dd id="p-type"></dd></div>
-          <div><dt>Year</dt><dd id="p-year"></dd></div>
-          <div><dt>Role</dt><dd id="p-role"></dd></div>
-        </dl>
+        <p class="project__meta" id="p-meta"></p>
       </header>
       <p class="project__summary" id="p-summary"></p>
       <div class="project__media">
@@ -57,11 +49,11 @@
         <div class="frame"></div>
         <div class="frame"></div>
       </div>
-      <button class="next" type="button" id="p-next"></button>
+      <button class="next" type="button" id="p-next">Next</button>
     </article>
   </section>
 
-  <noscript><p class="noscript">Your Name — Job Title</p></noscript>
+  <noscript><p class="noscript">Xavier Ruiz — Product Marketing @ ServiceNow</p></noscript>
 
   <script src="js/colormaps.js"></script>
   <script src="js/organism.js"></script>
