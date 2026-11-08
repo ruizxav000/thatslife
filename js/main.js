@@ -126,7 +126,7 @@
   const SPRITE = { u: 0.455, v: 0.503, w: 0.285, h: 0.1886, pivot: [0.57, 0.92], front: [0.12, 0.96], hind: [0.57, 0.92] };
   const GROUND = SPRITE.v + SPRITE.h;
   const START = SPRITE.u + SPRITE.w / 2;
-  const CRUISE = 0.0042;               // photo widths per frame at a steady gallop
+  const CRUISE = 0.0021;               // photo widths per frame: an easy lope
 
   // Tracks persist and slowly fill in; kicked-up snow is redrawn every frame.
   const FX_W = 750, FX_H = 338;
@@ -157,25 +157,25 @@
       if (chasing) {
         const target = (pointer.x - L.x) / L.w, gap = target - rider.u;
         // Ease into a stop near the cursor instead of hunting back and forth.
-        want = Math.sign(gap) * Math.min(CRUISE * 1.5, Math.abs(gap) * 0.035);
+        want = Math.sign(gap) * Math.min(CRUISE * 1.3, Math.abs(gap) * 0.02);
         if (Math.abs(gap) < 0.015) want = 0;
       } else {
         want = rider.dir * CRUISE;
         if ((rider.dir < 0 && rider.u < uL - half) || (rider.dir > 0 && rider.u > uR + half)) {
           rider.wait += dt;
-          if (rider.wait > 70) { rider.u = rider.dir < 0 ? uR + half : uL - half; rider.wait = 0; }
+          if (rider.wait > 110) { rider.u = rider.dir < 0 ? uR + half : uL - half; rider.wait = 0; }
           else want = rider.vel;
         }
       }
-      const k = 1 - Math.pow(1 - 0.035, dt);
+      const k = 1 - Math.pow(1 - 0.018, dt);   // gentle to speed up, gentle to settle
       rider.vel += (want - rider.vel) * k;
       rider.u += rider.vel * dt;
       if (Math.abs(rider.vel) > CRUISE * 0.15) rider.dir = rider.vel < 0 ? -1 : 1;
       // Stride rate follows speed, but a walking horse still moves its legs.
-      rider.pace += (Math.min(1, Math.abs(rider.vel) / CRUISE) - rider.pace) * (1 - Math.pow(0.9, dt));
-      rider.phase += (0.05 + Math.abs(rider.vel) * 44) * dt;
+      rider.pace += (Math.min(1, Math.abs(rider.vel) / CRUISE) - rider.pace) * (1 - Math.pow(0.96, dt));
+      rider.phase += (0.03 + Math.abs(rider.vel) * 31) * dt;   // under one stride a second
       // Turning takes a moment.
-      rider.sx += ((rider.dir < 0 ? 1 : -1) - rider.sx) * (1 - Math.pow(0.86, dt));
+      rider.sx += ((rider.dir < 0 ? 1 : -1) - rider.sx) * (1 - Math.pow(0.93, dt));
     }
     const pace = rider.pace;
     // One smooth rise and fall per stride, and only a little rocking.
@@ -211,7 +211,7 @@
       const n = 5 + (Math.random() * 4 | 0);
       for (let i = 0; i < n; i++) {
         const at = toFx(hh[0], GROUND);
-        rider.spray.push({ x: at[0], y: at[1], vx: -Math.sign(rider.vel || -1) * (0.3 + Math.random() * 1.4) * pace, vy: -(0.5 + Math.random() * 1.4) * pace, life: 34 + Math.random() * 26 });
+        rider.spray.push({ x: at[0], y: at[1], vx: -Math.sign(rider.vel || -1) * (0.2 + Math.random() * 0.9) * pace, vy: -(0.35 + Math.random() * 0.9) * pace, life: 50 + Math.random() * 30 });
       }
     }
     rider.stride = stride;
@@ -222,7 +222,7 @@
     const floor = toFx(0, GROUND + 0.01)[1];
     for (let i = rider.spray.length - 1; i >= 0; i--) {
       const s = rider.spray[i];
-      s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 0.05 * dt; s.vx *= Math.pow(0.985, dt); s.life -= dt;
+      s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 0.025 * dt; s.vx *= Math.pow(0.985, dt); s.life -= dt;
       if (s.life <= 0 || s.y > floor) { rider.spray.splice(i, 1); continue; }
       fxc.fillStyle = 'rgba(0,255,0,' + Math.min(1, s.life / 30).toFixed(2) + ')';
       fxc.fillRect(s.x - 0.8, s.y - 0.8, 1.6, 1.6);
