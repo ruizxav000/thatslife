@@ -161,18 +161,20 @@
     return this.mask[y * this.w + x] === 1;
   };
 
-  // Seeds are laid on a jittered grid so every letter gets some, and they
-  // germinate left to right, so the name grows like a wave.
+  // Seeds are laid on a jittered grid so every letter gets some. They
+  // germinate from the centre of the name outward.
   P.seedName = function () {
     const nb = this.nameBox;
     const g = Math.max(12, nb.size * 0.15);
-    const span = Math.max(1, nb.x1 - nb.x0);
+    const cx = (nb.x0 + nb.x1) / 2, cy = (nb.y0 + nb.y1) / 2;
+    const reach = Math.hypot(nb.x1 - cx, nb.y1 - cy) || 1;
     const pending = [];
     for (let y = nb.y0 - nb.size * 0.1; y < nb.y1 + nb.size * 0.3; y += g) {
       for (let x = nb.x0; x < nb.x1; x += g) {
         const px = x + Math.random() * g, py = y + Math.random() * g;
         if (!this.inMask(px, py)) continue;
-        pending.push({ x: px, y: py, at: 6 + Math.round(((px - nb.x0) / span) * 120 + Math.random() * 14) });
+        const d = Math.hypot(px - cx, py - cy) / reach;
+        pending.push({ x: px, y: py, at: 6 + Math.round(Math.pow(d, 0.85) * 130 + Math.random() * 10) });
       }
     }
     this.pending = pending;
@@ -208,12 +210,6 @@
       this.target = -1;
     }
     if (this.pointer && this.frame - this.pointerFrame < 170) {
-      for (let i = 0; i < this.spores.length; i++) {
-        const s = this.spores[i];
-        if (s.found) continue;
-        const dx = s.x - this.pointer.x, dy = s.y - this.pointer.y;
-        if (dx * dx + dy * dy < 120 * 120) return { x: s.x, y: s.y, spore: i };
-      }
       return { x: this.pointer.x, y: this.pointer.y, spore: -1 };
     }
     return null;
@@ -313,12 +309,12 @@
 
       if (!name) {
         if (--tp.life <= 0) { tp.dead = true; continue; }
-        for (let k = 0; k < this.spores.length; k++) {
-          const s = this.spores[k];
-          if (s.found) continue;
+        // A project opens only when it was clicked and the network reaches it.
+        if (this.target >= 0) {
+          const s = this.spores[this.target];
           const dx = s.x - nx, dy = s.y - ny;
-          if (dx * dx + dy * dy < 15 * 15) {
-            this.connect(k, si);
+          if (!s.found && dx * dx + dy * dy < 15 * 15) {
+            this.connect(this.target, si);
             tp.tro = 0;
             tp.life = Math.min(tp.life, 30);
           }

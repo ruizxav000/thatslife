@@ -31,11 +31,6 @@
   document.querySelectorAll('[data-place]').forEach(function (n) { n.textContent = ME.place; });
   document.querySelectorAll('[data-name]').forEach(function (n) { n.textContent = 'Xavier Ruiz'; });
 
-  // Which projects this visitor has already reached.
-  let found = [];
-  try { found = JSON.parse(localStorage.getItem('xr-found') || '[]').filter(function (i) { return i < ME.projects.length; }); } catch (e) {}
-  function remember() { try { localStorage.setItem('xr-found', JSON.stringify(found)); } catch (e) {} }
-
   const role = $('#role');
   const org = new window.Organism($('#base'), $('#over'), {
     family: '"Unbounded", sans-serif',
@@ -43,10 +38,8 @@
     stretch: 'normal',
     onNameDone: function () {
       role.classList.add('is-in');
-      org.queue = found.slice();
     },
     onConnect: function (i) {
-      if (found.indexOf(i) < 0) { found.push(i); remember(); }
       sporeEls[i].classList.add('is-found');
       indexButtons[i].classList.add('is-found');
     }
@@ -93,7 +86,6 @@
     org.setup(nameLines(), LAYOUT);
     layoutDom();
     if (reduceMotion) {
-      org.queue = found.slice();
       org.settle(false);
       role.classList.add('is-in');
     }
@@ -114,7 +106,6 @@
     list.appendChild(li);
     return b;
   });
-  found.forEach(function (i) { indexButtons[i].classList.add('is-found'); });
 
   $('#links').innerHTML = ME.links.map(function (l) {
     return '<li><a href="' + l.href + '" target="_blank" rel="noopener">' + l.label + '</a></li>';
@@ -166,7 +157,8 @@
   });
 
   function loop() {
-    if (!reduceMotion && !document.hidden) {
+    // Rest while a sheet covers the page.
+    if (!reduceMotion && !document.hidden && !openSheet) {
       org.update();
       org.render();
     }
