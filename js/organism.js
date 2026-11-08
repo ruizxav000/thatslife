@@ -109,9 +109,10 @@
     const x = c.getContext('2d');
     const narrow = W < 700;
     const fam = this.opts.family || 'sans-serif';
+    const weight = this.opts.weight || 900, stretch = this.opts.stretch || 'expanded';
     function setFont(px) {
-      x.font = '900 ' + px + 'px ' + fam;
-      if ('fontStretch' in x) x.fontStretch = 'expanded';
+      x.font = weight + ' ' + px + 'px ' + fam;
+      if ('fontStretch' in x) x.fontStretch = stretch;
     }
     setFont(100);
     let wMax = 0;
